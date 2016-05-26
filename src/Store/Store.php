@@ -9,6 +9,7 @@ use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Metadata\RelationshipMetadata;
+use As3\Modlr\Models;
 use As3\Modlr\Models\Collections;
 use As3\Modlr\Models\Embed;
 use As3\Modlr\Models\Model;
@@ -270,16 +271,21 @@ class Store
      */
     protected function loadModel($typeKey, array $record)
     {
+
         $this->mf->validateResourceTypes($typeKey, $record['type']);
         // Must use the type from the record to cover polymorphic models.
+
+
         $metadata = $this->getMetadataForType($record['type']);
 
-        $model = new Model($metadata, $record['identifier'], $this, $record['properties']);
-        $model->getState()->setLoaded();
+        $start = microtime(true);
+        $model = new Models\NewModel($metadata, $record['identifier'], $this, $record['properties']);
+        var_dump(microtime(true) - $start);
 
-        $this->dispatchLifecycleEvent(Events::postLoad, $model);
+        // $this->dispatchLifecycleEvent(Events::postLoad, $model);
 
-        $this->cache->push($model);
+        // $this->cache->push($model);
+
         return $model;
     }
 
@@ -351,8 +357,8 @@ class Store
         }
 
         $metadata = $this->getMetadataForType($relatedTypeKey);
-        $model = new Model($metadata, $identifier, $this);
-        $this->cache->push($model);
+        $model = new Models\NewModel($metadata, $identifier, $this);
+        // $this->cache->push($model);
         return $model;
     }
 
