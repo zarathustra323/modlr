@@ -1,6 +1,6 @@
 <?php
 
-namespace As3\Modlr\Models;
+namespace As3\Modlr\Model\Core;
 
 use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Store\Store;
@@ -8,7 +8,7 @@ use As3\Modlr\Store\Store;
 /**
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class InternalModel
+class CoreModel
 {
     /**
      * The model changeset.

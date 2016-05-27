@@ -9,7 +9,7 @@ use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Metadata\RelationshipMetadata;
-use As3\Modlr\Models;
+use As3\Modlr\Model as NewModel;
 use As3\Modlr\Models\Collections;
 use As3\Modlr\Models\Embed;
 use As3\Modlr\Models\Model;
@@ -279,7 +279,7 @@ class Store
         $metadata = $this->getMetadataForType($record['type']);
 
         $start = microtime(true);
-        $model = new Models\NewModel($metadata, $record['identifier'], $this, $record['properties']);
+        $model = new NewModel\Model($metadata, $record['identifier'], $this, $record['properties']);
         var_dump(microtime(true) - $start);
 
         // $this->dispatchLifecycleEvent(Events::postLoad, $model);
