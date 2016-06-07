@@ -11,20 +11,11 @@ use As3\Modlr\Store\Store;
 class CoreModel
 {
     /**
-     * The model changeset.
-     *
-     */
-    protected $changset;
-
-    /**
      * The model properties.
      *
-     * @var array
+     * @var Properties
      */
-    protected $properties = [
-        'attributes'    => [],
-        'hasOne'        => [],
-    ];
+    protected $properties;
 
     /**
      * The id value of this model.
@@ -75,7 +66,11 @@ class CoreModel
         $this->metadata = $metadata;
         $this->identifier = $identifier;
         $this->store = $store;
-        $this->initialize($properties);
+        $this->properties = new Properties($metadata, $store, $properties);
+        if (null !== $properties) {
+            $this->setLoaded();
+        }
+        // $this->initialize($properties);
     }
 
     /**
@@ -88,15 +83,7 @@ class CoreModel
      */
     public function get($key)
     {
-        if (true === $this->isAttribute($key)) {
-            return $this->getAttribute($key);
-        }
-        if (true === $this->isRelationship($key)) {
-            return $this->getRelationship($key);
-        }
-        if (true === $this->isEmbed($key)) {
-            return $this->getEmbed($key);
-        }
+        return $this->properties->get($key);
     }
 
     /**
@@ -129,37 +116,6 @@ class CoreModel
     public function getType()
     {
         return $this->metadata->type;
-    }
-
-    /**
-     * Initializes the model and loads its attributes and relationships.
-     *
-     * @param   array|null  $properties     The db properties to apply.
-     * @return  self
-     */
-    public function initialize(array $properties = null)
-    {
-        if (null === $properties) {
-            return $this;
-        }
-
-        foreach ($properties as $key => $value) {
-            if (true === $this->isAttribute($key)) {
-                // Load attribute.
-                $this->properties['attributes'][$key] = $value;
-            } else if (true === $this->isHasOne($key)) {
-                // Load hasOne relationship.
-                $this->properties['hasOne'][$key] = [ $value['type'], $value['id'] ];
-                continue;
-            }
-
-            // } else if (true === $this->isEmbedHasOne($key) && is_array($value)) {
-            //     // Load embed one.
-            //     $embedOne[$key] = $this->getStore()->loadEmbed($this->getMetadata()->getEmbed($key)->embedMeta, $value);
-            // }
-        }
-        $this->setLoaded();
-        return $this;
     }
 
     /**
