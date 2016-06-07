@@ -280,7 +280,7 @@ class Store
 
         $start = microtime(true);
         $model = new NewModel\Model($metadata, $record['identifier'], $this, $record['properties']);
-        var_dump(microtime(true) - $start);
+        var_dump(round(((microtime(true) - $start) * 1000), 3) . 'ms');
 
         // $this->dispatchLifecycleEvent(Events::postLoad, $model);
 
