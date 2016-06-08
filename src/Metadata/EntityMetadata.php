@@ -3,40 +3,25 @@
 namespace As3\Modlr\Metadata;
 
 use As3\Modlr\Exception\MetadataException;
+use As3\Modlr\Metadata\Properties\PropertyMetadata;
 
 /**
- * Defines the metadata for an entity (e.g. a database object).
+ * Defines the metadata for a model.
  * Should be loaded using the MetadataFactory, not instantiated directly.
  *
  * @author  Jacob Bare <jacob.bare@gmail.com>
- * @todo    This should be renamed to ModelMetadata.
  */
-class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedInterface, Interfaces\MergeableInterface, Interfaces\MixinInterface, Interfaces\RelationshipInterface
+class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\MetadataPropertiesInterface, Interfaces\MixinInterface
 {
-    /**
-     * Uses attributes.
-     */
-    use Traits\AttributesTrait;
-
-    /**
-     * Uses embeds.
-     */
-    use Traits\EmbedsTrait;
-
     /**
      * Uses mixins.
      */
     use Traits\MixinsTrait;
 
     /**
-     * Uses merged properties.
+     * Uses properties.
      */
     use Traits\PropertiesTrait;
-
-    /**
-     * Uses relationships.
-     */
-    use Traits\RelationshipsTrait;
 
     /**
      * The id key name and type.
@@ -50,6 +35,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     const TYPE_KEY = 'type';
 
     /**
+     * READ-ONLY.
      * Whether this class is abstract.
      *
      * @var bool
@@ -57,6 +43,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     public $abstract = false;
 
     /**
+     * READ-ONLY.
      * An array of attribute default values for this model.
      * Keyed by field name.
      *
@@ -65,14 +52,16 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     public $defaultValues = [];
 
     /**
-     * The entity type this entity extends.
+     * READ-ONLY.
+     * The model type this model extends.
      *
      * @var string|null
      */
     public $extends;
 
     /**
-     * Child entity types this entity owns.
+     * READ-ONLY.
+     * Child model types this model owns.
      * Only used for polymorphic entities.
      *
      * @var array
@@ -80,13 +69,15 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     public $ownedTypes = [];
 
     /**
-     * The persistence metadata for this entity.
+     * READ-ONLY.
+     * The persistence metadata for this model.
      *
      * @var Interfaces\StorageLayerInterface
      */
     public $persistence;
 
     /**
+     * READ-ONLY.
      * Whether this class is considered polymorphic.
      *
      * @var bool
@@ -94,14 +85,16 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     public $polymorphic = false;
 
     /**
-     * The search metadata for this entity.
+     * READ-ONLY.
+     * The search metadata for this model.
      *
      * @var Interfaces\StorageLayerInterface
      */
     public $search;
 
     /**
-     * Uniquely defines the type of entity.
+     * READ-ONLY.
+     * Uniquely defines the type of model.
      *
      * @var string
      */
@@ -110,7 +103,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     /**
      * Constructor.
      *
-     * @param   string  $type   The resource identifier type.
+     * @param   string  $type   The model type.
      */
     public function __construct($type)
     {
@@ -118,8 +111,8 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Gets the parent entity type.
-     * For entities that are extended.
+     * Gets the parent model type.
+     * For models that are extended.
      *
      * @return  string|null
      */
@@ -129,15 +122,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function getProperties()
-    {
-        return array_merge($this->getAttributes(), $this->getRelationships(), $this->getEmbeds());
-    }
-
-    /**
-     * Whether this metadata represents an abstract class.
+     * Whether this metadata represents an abstract model.
      *
      * @return  bool
      */
@@ -147,7 +132,17 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Whether this metadata represents a polymorphic class.
+     * Determines if this is a child model of another model.
+     *
+     * @return  bool
+     */
+    public function isChildEntity()
+    {
+        return null !== $this->getParentModelType();
+    }
+
+    /**
+     * Whether this metadata represents a polymorphic model.
      *
      * @return  bool
      */
@@ -167,21 +162,11 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Determines if this is a child entity of another entity.
-     *
-     * @return  bool
-     */
-    public function isChildEntity()
-    {
-        return null !== $this->getParentEntityType();
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function merge(Interfaces\MergeableInterface $metadata)
     {
-        if (!$metadata instanceof EntityMetadata) {
+        if (!$metadata instanceof ModelMetadata) {
             throw new MetadataException('Unable to merge metadata. The provided metadata instance is not compatible.');
         }
 
@@ -195,16 +180,13 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
         $this->persistence->merge($metadata->persistence);
         $this->search->merge($metadata->search);
 
-        $this->mergeAttributes($metadata->getAttributes());
-        $this->mergeRelationships($metadata->getRelationships());
-        $this->mergeEmbeds($metadata->getEmbeds());
+        $this->mergeProperties($metadata->getProperties());
         $this->mergeMixins($metadata->getMixins());
-
         return $this;
     }
 
     /**
-     * Sets this metadata as representing an abstract class.
+     * Sets this metadata as representing an abstract model.
      *
      * @param   bool    $bit
      * @return  self
@@ -216,7 +198,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Sets the persistence metadata for this entity.
+     * Sets the persistence metadata for this model.
      *
      * @param   Interfaces\StorageLayerInterface    $persistence
      * @return  self
@@ -228,7 +210,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Sets this metadata as representing a polymorphic class.
+     * Sets this metadata as representing a polymorphic model.
      *
      * @param   bool    $bit
      * @return  self
@@ -240,7 +222,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Sets the search metadata for this entity.
+     * Sets the search metadata for this model.
      *
      * @param   Interfaces\StorageLayerInterface    $search
      * @return  self
@@ -252,7 +234,7 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
     }
 
     /**
-     * Sets the entity type.
+     * Sets the model type.
      *
      * @param   string  $type
      * @return  self
@@ -272,89 +254,24 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
      */
     protected function applyMixinProperties(MixinMetadata $mixin)
     {
-        foreach ($mixin->getAttributes() as $attribute) {
-            if (true === $this->hasAttribute($attribute->key)) {
-                throw MetadataException::mixinPropertyExists($this->type, $mixin->name, 'attribute', $attribute->key);
+        foreach ($mixin->getProperties() as $property) {
+            if (true === $this->hasProperty($property->getKey())) {
+                throw MetadataException::mixinPropertyExists($this->type, $mixin->name, 'property', $property->getKey());
             }
-            $this->addAttribute($attribute);
-        }
-        foreach ($mixin->getRelationships() as $relationship) {
-            if (true === $this->hasRelationship($relationship->key)) {
-                throw MetadataException::mixinPropertyExists($this->type, $mixin->name, 'relationship', $relationship->key);
-            }
-            $this->addRelationship($relationship);
-        }
-        foreach ($mixin->getEmbeds() as $embed) {
-            if (true === $this->hasEmbed($embed->key)) {
-                throw MetadataException::mixinPropertyExists($this->type, $mixin->name, 'embed', $embed->key);
-            }
-            $this->addEmbed($embed);
+            $this->addProperty($property);
         }
     }
 
     /**
-     * {@inheritdoc}
-     */
-    protected function validateAttribute(AttributeMetadata $attribute)
-    {
-        if (true === $this->hasRelationship($attribute->getKey())) {
-            throw MetadataException::fieldKeyInUse('attribute', 'relationship', $attribute->getKey(), $this->type);
-        }
-        if (true === $this->hasEmbed($attribute->getKey())) {
-            throw MetadataException::fieldKeyInUse('attribute', 'embed', $attribute->getKey(), $this->type);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function validateEmbed(EmbeddedPropMetadata $embed)
-    {
-        if (true === $this->hasAttribute($embed->getKey())) {
-            throw MetadataException::fieldKeyInUse('embed', 'attribute', $embed->getKey(), $this->type);
-        }
-        if (true === $this->hasRelationship($embed->getKey())) {
-            throw MetadataException::fieldKeyInUse('embed', 'relationship', $embed->getKey(), $this->type);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function validateRelationship(RelationshipMetadata $relationship)
-    {
-        if (true === $this->hasAttribute($relationship->getKey())) {
-            throw MetadataException::fieldKeyInUse('relationship', 'attribute', $relationship->getKey(), $this->type);
-        }
-        if (true === $this->hasEmbed($relationship->getKey())) {
-            throw MetadataException::fieldKeyInUse('relationship', 'embed', $relationship->getKey(), $this->type);
-        }
-    }
-
-    /**
-     * Merges attributes with this instance's attributes.
+     * Merges properties with this instance's properties.
      *
-     * @param   AttributeMetadata[]     $toAdd
+     * @param   PropertyMetadata[]     $toAdd
      * @return  self
      */
-    private function mergeAttributes(array $toAdd)
+    private function mergeProperties(array $toAdd)
     {
-        foreach ($toAdd as $attribute) {
-            $this->addAttribute($attribute);
-        }
-        return $this;
-    }
-
-    /**
-     * Merges embeds with this instance's embeds.
-     *
-     * @param   EmbeddedPropMetadata[]  $toAdd
-     * @return  self
-     */
-    private function mergeEmbeds(array $toAdd)
-    {
-        foreach ($toAdd as $embed) {
-            $this->addEmbed($embed);
+        foreach ($toAdd as $property) {
+            $this->addProperty($property);
         }
         return $this;
     }
@@ -371,20 +288,6 @@ class EntityMetadata implements Interfaces\AttributeInterface, Interfaces\EmbedI
             if (!isset($this->mixins[$mixin->name])) {
                 $this->mixins[$mixin->name] = $mixin;
             }
-        }
-        return $this;
-    }
-
-    /**
-     * Merges relationships with this instance's relationships.
-     *
-     * @param   RelationshipMetadata[]  $toAdd
-     * @return  self
-     */
-    private function mergeRelationships(array $toAdd)
-    {
-        foreach ($toAdd as $relationship) {
-            $this->addRelationship($relationship);
         }
         return $this;
     }

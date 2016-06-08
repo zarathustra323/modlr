@@ -15,7 +15,7 @@ trait MixinsTrait
     /**
      * All mixins assigned to this object.
      *
-     * @var     MixinMetadata[]
+     * @var MixinMetadata[]
      */
     public $mixins = [];
 
@@ -37,6 +37,16 @@ trait MixinsTrait
     }
 
     /**
+     * Gets all assigned mixins.
+     *
+     * @return  MixinMetadata[]
+     */
+    public function getMixins()
+    {
+        return $this->mixins;
+    }
+
+    /**
      * Determines if a mixin exists.
      *
      * @param   string  $mixinName
@@ -45,16 +55,6 @@ trait MixinsTrait
     public function hasMixin($mixinName)
     {
         return isset($this->mixins[$mixinName]);
-    }
-
-    /**
-     * Gets all assigned mixins.
-     *
-     * @return  MixinMetadata[]
-     */
-    public function getMixins()
-    {
-        return $this->mixins;
     }
 
     /**

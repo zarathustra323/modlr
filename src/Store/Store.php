@@ -6,7 +6,7 @@ use As3\Modlr\DataTypes\TypeFactory;
 use As3\Modlr\Events\EventDispatcher;
 use As3\Modlr\Metadata\EmbeddedPropMetadata;
 use As3\Modlr\Metadata\EmbedMetadata;
-use As3\Modlr\Metadata\EntityMetadata;
+use As3\Modlr\Metadata\ModelMetadata;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Metadata\RelationshipMetadata;
 use As3\Modlr\Model as NewModel;
@@ -357,7 +357,7 @@ class Store
         }
 
         $metadata = $this->getMetadataForType($relatedTypeKey);
-        $model = new Models\NewModel($metadata, $identifier, $this);
+        $model = new NewModel\Model($metadata, $identifier, $this);
         // $this->cache->push($model);
         return $model;
     }
@@ -584,12 +584,12 @@ class Store
     /**
      * Validates that a model type can be set to an owning metadata type.
      *
-     * @param   EntityMetadata  $owningMeta The metadata the type will be added to.
+     * @param   ModelMetadata  $owningMeta The metadata the type will be added to.
      * @param   string          $typeToAdd  The type to add.
      * @return  self
      * @throws  StoreException  If the type to add is not supported.
      */
-    public function validateRelationshipSet(EntityMetadata $owningMeta, $typeToAdd)
+    public function validateRelationshipSet(ModelMetadata $owningMeta, $typeToAdd)
     {
         if (true === $owningMeta->isPolymorphic()) {
             $canSet = in_array($typeToAdd, $owningMeta->ownedTypes);
@@ -653,7 +653,7 @@ class Store
      * Gets the metadata for a model type.
      *
      * @param   string  $typeKey    The model type.
-     * @return  EntityMetadata
+     * @return  ModelMetadata
      */
     public function getMetadataForType($typeKey)
     {
@@ -664,7 +664,7 @@ class Store
      * Gets the metadata for a relationship.
      *
      * @param   RelationshipMetadata    $relMeta    The relationship metadata.
-     * @return  EntityMetadata
+     * @return  ModelMetadata
      */
     public function getMetadataForRelationship(RelationshipMetadata $relMeta)
     {

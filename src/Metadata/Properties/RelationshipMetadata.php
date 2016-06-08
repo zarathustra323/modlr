@@ -1,32 +1,27 @@
 <?php
 
-namespace As3\Modlr\Metadata;
+namespace As3\Modlr\Metadata\Properties;
 
 use As3\Modlr\Exception\MetadataException;
 
 /**
- * Defines metadata for a relationship field.
+ * Defines metadata for a relationship property.
  * Should be loaded using the MetadataFactory, not instantiated directly.
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class RelationshipMetadata extends FieldMetadata
+class RelationshipMetadata extends PropertyMetadata
 {
     /**
-     * The entity type this is related to.
+     * READ-ONLY.
+     * The model type this is related to.
      *
      * @var string
      */
     public $entityType;
 
     /**
-     * The relationship type: one or many
-     *
-     * @var string
-     */
-    public $relType;
-
-    /**
+     * READ-ONLY.
      * Determines if this is an inverse (non-owning) relationship.
      *
      * @var bool
@@ -34,6 +29,7 @@ class RelationshipMetadata extends FieldMetadata
     public $isInverse = false;
 
     /**
+     * READ-ONLY.
      * The inverse field.
      *
      * @var bool
@@ -41,35 +37,46 @@ class RelationshipMetadata extends FieldMetadata
     public $inverseField;
 
     /**
-     * Determines if the relationship related to a polymorphic entity.
+     * READ-ONLY.
+     * Child model types the related model owns.
+     * Only used for polymorphic relationships.
+     */
+    public $ownedTypes = [];
+
+    /**
+     * READ-ONLY.
+     * Determines if the related model is polymorphic.
+     * Hence determines if this is a polymorphic relationship.
      *
      * @var bool
      */
     public $polymorphic = false;
 
     /**
-     * Child entity types the related entity owns.
-     * Only used for polymorphic relationships.
+     * READ-ONLY.
+     * The relationship type: one or many
+     *
+     * @var string
      */
-    public $ownedTypes = [];
+    public $relType;
 
     /**
      * Constructor.
      *
-     * @param   string  $key        The relationship field key.
+     * @param   string  $key        The relationship property key.
      * @param   string  $relType    The relationship type.
-     * @param   string  $entityType The entity type key.
+     * @param   string  $modelType  The model type key.
      * @param   bool    $mixin
      */
-    public function __construct($key, $relType, $entityType, $mixin = false)
+    public function __construct($key, $relType, $modelType, $mixin = false)
     {
         parent::__construct($key, $mixin);
         $this->setRelType($relType);
-        $this->entityType = $entityType;
+        $this->entityType = $modelType;
     }
 
     /**
-     * Gets the entity type that this field is related to.
+     * Gets the model type that this property is related to.
      *
      * @return  string
      */
@@ -89,23 +96,31 @@ class RelationshipMetadata extends FieldMetadata
     }
 
     /**
-     * Determines if this is a one (single) relationship.
-     *
-     * @return  bool
+     * {@inheritdoc}
      */
-    public function isOne()
+    public function getType()
     {
-        return 'one' === $this->getRelType();
+        return sprintf('relationship-%s', $this->getRelType());
     }
 
     /**
-     * Determines if this is a many relationship.
+     * Determines if this is a has-many relationship.
      *
      * @return bool
      */
     public function isMany()
     {
         return 'many' === $this->getRelType();
+    }
+
+    /**
+     * Determines if this is a has-one relationship.
+     *
+     * @return  bool
+     */
+    public function isOne()
+    {
+        return 'one' === $this->getRelType();
     }
 
     /**
@@ -118,6 +133,12 @@ class RelationshipMetadata extends FieldMetadata
         return $this->polymorphic;
     }
 
+    /**
+     * Flags the relationship as polymorphic.
+     *
+     * @param   bool    $bit
+     * @return  self
+     */
     public function setPolymorphic($bit = true)
     {
         $this->polymorphic = (Boolean) $bit;

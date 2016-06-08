@@ -3,7 +3,7 @@
 namespace As3\Modlr\Metadata\Interfaces;
 
 /**
- * Defines the storage layer metadata for an entity (e.g. a database or search object).
+ * Defines the storage layer metadata for a model.
  * Should be loaded using the MetadataFactory, not instantiated directly.
  * Contains information about the database schema, such as db/collection/table names, indexes, etc.
  * Each implementing class must define it's own merging criteria, and handle it's own properties/methods.

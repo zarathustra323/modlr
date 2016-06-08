@@ -1,39 +1,43 @@
 <?php
 
-namespace As3\Modlr\Metadata;
+namespace As3\Modlr\Metadata\Properties;
 
 use As3\Modlr\Exception\MetadataException;
 
 /**
- * Abstract field metadata class used for all Entity fields (attributes and relationships).
+ * Abstract property metadata class.
  * Should be loaded using the MetadataFactory, not instantiated directly.
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-abstract class FieldMetadata
+abstract class PropertyMetadata
 {
     /**
-     * A friendly description of the field.
+     * READ-ONLY.
+     * A friendly description of the property.
      *
      * @var string
      */
     public $description;
 
     /**
-     * The field key.
+     * READ-ONLY.
+     * The property/field key.
      *
      * @var string
      */
     public $key;
 
     /**
-     * Determines if this field came from a mixin.
+     * READ-ONLY.
+     * Determines if the property came from a mixin.
      *
      * @var bool
      */
     public $mixin;
 
     /**
+     * READ-ONLY.
      * Whether this property should be persisted.
      *
      * @var bool
@@ -41,18 +45,20 @@ abstract class FieldMetadata
     public $save = true;
 
     /**
-     * Whether this property should be serialized.
-     *
-     * @var bool
-     */
-    public $serialize = true;
-
-    /**
+     * READ-ONLY.
      * Determines whether this propety is stored in search.
      *
      * @var bool
      */
     public $searchProperty = false;
+
+    /**
+     * READ-ONLY.
+     * Whether this property should be serialized.
+     *
+     * @var bool
+     */
+    public $serialize = true;
 
     /**
      * Constructor.
@@ -92,7 +98,7 @@ abstract class FieldMetadata
     }
 
     /**
-     * Gets the field key.
+     * Gets the property key.
      *
      * @return  string
      */
@@ -100,6 +106,13 @@ abstract class FieldMetadata
     {
         return $this->key;
     }
+
+    /**
+     * Gets the property type, such as an attribute, relationship, etc.
+     *
+     * @return  string
+     */
+    abstract public function getType();
 
     /**
      * Determines whether this propety is stored in search.
@@ -144,12 +157,12 @@ abstract class FieldMetadata
     }
 
     /**
-     * Validates that the field key is not reserved.
+     * Validates that the property key is not reserved.
      *
      * @param   string  $key
      * @throws  MetadataException
      */
-    protected function validateKey($key)
+    private function validateKey($key)
     {
         $reserved = ['type', 'id'];
         if (in_array(strtolower($key), $reserved)) {

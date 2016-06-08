@@ -2,38 +2,99 @@
 
 namespace As3\Modlr\Metadata\Traits;
 
-use As3\Modlr\Metadata\FieldMetadata;
+use As3\Modlr\Metadata\Properties\AttributeMetadata;
+use As3\Modlr\Metadata\Properties\PropertyMetadata;
 
 /**
- * Common property metadata get methods.
+ * Common property metadata methods.
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
 trait PropertiesTrait
 {
     /**
-     * Gets merged properties that this object contains.
-     * Is a combination of attributes, relationships, and/or embeds, depending what the object supports.
+     * READ-ONLY.
+     * Properties assigned to this metadata instance.
      *
-     * @return  FieldMetadata[]
+     * @var PropertyMetadata[]
      */
-    abstract public function getProperties();
+    public $properties = [];
 
     /**
-     * Determines whether search is enabled.
+     * Adds a property to this instance.
      *
+     * @param   PropertyMetadata    $property
+     * @return  self
+     */
+    public function addProperty(PropertyMetadata $property)
+    {
+        $this->properties[$property->getKey()] = $property;
+        ksort($this->properties);
+        return $this;
+    }
+
+    /**
+     * Determines if an attribute supports autocomplete functionality.
+     *
+     * @param   string  $key    The attribute key.
      * @return  bool
      */
-    public function isSearchEnabled()
+    public function attrSupportsAutocomplete($key)
     {
-        $propertes = $this->getSearchProperties();
-        return !empty($propertes);
+        return isset($this->getAutocompleteAttributes()[$key]);
+    }
+
+    /**
+     * Gets all properties that are flagged for autocomplete in search.
+     *
+     * @return  PropertyMetadata[]
+     */
+    public function getAutocompleteAttributes()
+    {
+        static $attrs;
+        if (null !== $attrs) {
+            return $attrs;
+        }
+
+        $attrs = [];
+        foreach ($this->getProperties() as $key => $attribute) {
+            if (false === $this->isAttribute($key) && false === $attribute->hasAutocomplete()) {
+                continue;
+            }
+            $attrs[$key] = $attribute;
+        }
+        return $attrs;
+    }
+
+    /**
+     * Gets all properties that this instance contains.
+     *
+     * @return  PropertyMetadata[]
+     */
+    public function getProperties()
+    {
+        return $this->properties;
+    }
+
+    /**
+     * Gets a property.
+     * Returns null if the property does not exist.
+     *
+     * @param   string  $key
+     * @return  PropertyMetadata|null
+     */
+    public function getProperty($key)
+    {
+        if (!isset($this->properties[$key])) {
+            return null;
+        }
+        return $this->properties[$key];
     }
 
     /**
      * Gets all properties that are flagged for storage in search.
      *
-     * @return  FieldMetadata[]
+     * @return  PropertyMetadata[]
      */
     public function getSearchProperties()
     {
@@ -44,12 +105,136 @@ trait PropertiesTrait
 
         $props = [];
         foreach ($this->getProperties() as $key => $property) {
-            if (false === $property->isSearchProperty()) {
+            if (false === $this->isAttribute($key) && false === $property->isSearchProperty()) {
                 continue;
             }
             $props[$key] = $property;
         }
         return $props;
+    }
+
+    /**
+     * Determines if a property exists.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function hasProperty($key)
+    {
+        return isset($this->properties[$key]);
+    }
+
+    /**
+     * Determines whether any search properties are defined.
+     *
+     * @return  bool
+     */
+    public function hasSearchProperties()
+    {
+        $propertes = $this->getSearchProperties();
+        return !empty($propertes);
+    }
+
+    /**
+     * Determines if the property is an attribute.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isAttribute($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'attribute' === $property->getType();
+    }
+
+    /**
+     * Determines if the property is an embed.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isEmbed($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'embed-one'  === $property->getType()
+            || 'embed-many' === $property->getType()
+        ;
+    }
+
+    /**
+     * Determines if the property is an embed-many.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isEmbedMany($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'embed-many' === $property->getType();
+    }
+
+    /**
+     * Determines if the property is an embed-one.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isEmbedOne($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'embed-one' === $property->getType();
+    }
+
+    /**
+     * Determines if the property is a relationship.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isRelationship($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'relationship-one'  === $property->getType()
+            || 'relationship-many' === $property->getType()
+        ;
+    }
+
+    /**
+     * Determines if the property is an relationship-many.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isRelationshipMany($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'relationship-many' === $property->getType();
+    }
+
+    /**
+     * Determines if the property is an relationship-one.
+     *
+     * @param   string  $key
+     * @return  bool
+     */
+    public function isRelationshipOne($key)
+    {
+        if (null === $property = $this->getProperty($key)) {
+            return false;
+        }
+        return 'relationship-one' === $property->getType();
     }
 
     /**

@@ -2,7 +2,7 @@
 
 namespace As3\Modlr\Model\Core;
 
-use As3\Modlr\Metadata\EntityMetadata;
+use As3\Modlr\Metadata\ModelMetadata;
 use As3\Modlr\Store\Store;
 
 /**
@@ -28,7 +28,7 @@ class CoreModel
     /**
      * The metadata that defines this Model.
      *
-     * @var EntityMetadata
+     * @var ModelMetadata
      */
     protected $metadata;
 
@@ -56,12 +56,12 @@ class CoreModel
     /**
      * Constructor.
      *
-     * @param   EntityMetadata  $metadata
+     * @param   ModelMetadata  $metadata
      * @param   string          $identifier
      * @param   Store           $store
      * @param   array|null      $properties
      */
-    public function __construct(EntityMetadata $metadata, $identifier, Store $store, array $properties = null)
+    public function __construct(ModelMetadata $metadata, $identifier, Store $store, array $properties = null)
     {
         $this->metadata = $metadata;
         $this->identifier = $identifier;
@@ -101,7 +101,7 @@ class CoreModel
      * Gets the metadata for this model.
      *
      * @api
-     * @return  EntityMetadata
+     * @return  ModelMetadata
      */
     public function getMetadata()
     {

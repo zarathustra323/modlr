@@ -2,7 +2,7 @@
 
 namespace As3\Modlr\Model\Core;
 
-use As3\Modlr\Metadata\EntityMetadata;
+use As3\Modlr\Metadata\ModelMetadata;
 use As3\Modlr\Store\Store;
 
 /**
@@ -21,7 +21,7 @@ class Properties
     protected $converted = [];
 
     /**
-     * @var EntityMetadata
+     * @var ModelMetadata
      */
     protected $metadata;
 
@@ -61,7 +61,7 @@ class Properties
      *
      * @param   array   $original   Any original properties to apply.
      */
-    public function __construct(EntityMetadata $metadata, Store $store, array $original = null)
+    public function __construct(ModelMetadata $metadata, Store $store, array $original = null)
     {
         $this->converted = $this->original;
         $this->metadata = $metadata;
@@ -95,14 +95,23 @@ class Properties
     }
 
     /**
-     * Determines if a property key is an attribute.
+     * Gets the metadata that represents this model's properties.
      *
-     * @param   string  $key    The property key.
-     * @return  bool
+     * @return  ModelMetadata
      */
-    public function isAttribute($key)
+    public function getMetadata()
     {
-        return $this->metadata->hasAttribute($key);
+        return $this->metadata;
+    }
+
+    /**
+     * Gets the model store.
+     *
+     * @return  Store
+     */
+    public function getStore()
+    {
+        return $this->store;
     }
 
     /**
@@ -113,10 +122,10 @@ class Properties
      */
     public function isCalculatedAttribute($key)
     {
-        if (false === $this->isAttribute($key)) {
+        if (null === $attrMeta = $this->metadata->getAttribute($key)) {
             return false;
         }
-        return $this->metadata->getAttribute($key)->isCalculated();
+        return $attrMeta->isCalculated();
     }
 
     /**
@@ -156,17 +165,24 @@ class Properties
     protected function convertValue($key)
     {
         if (!isset($this->original[$key])) {
-            if (true === $this->isAttribute($key)) {
+            if (null !== $attrMeta = $this->metadata->getAttribute($key)) {
                 // Load the default attribute value
-                return $this->metadata->getAttribute($key)->defaultValue;
+                return $attrMeta->defaultValue;
             }
             // @todo elseif isHasMany return empty Collection; elseif isEmbedMany return empty Collection;
             return;
         }
 
-        if (true === $this->isAttribute($key)) {
-            $dataType = $this->metadata->getAttribute($key)->dataType;
-            return $this->store->convertAttributeValue($dataType, $this->original[$key]);
+        if (null !== $attrMeta = $this->metadata->getAttribute($key)) {
+            return $this->store->convertAttributeValue($attrMeta->dataType, $this->original[$key]);
+        }
+        if (null !== $relMeta = $this->metadata->getRelationship($key)) {
+            if (true === $relMeta->isOne()) {
+                // Load the proxy model.
+                return $this->store->loadProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
+            } else {
+                // Load the lazy model collection.
+            }
         }
     }
 

@@ -11,7 +11,7 @@ interface MergeableInterface
 {
     /**
      * Merges a Mergeable instance with this instance.
-     * For use with entity class extension.
+     * For use with model class extension.
      * Only merge items where you want the child class to override the parent!
      *
      * @param   MergeableInterface  $metadata

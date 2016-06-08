@@ -1,18 +1,20 @@
 <?php
 
-namespace As3\Modlr\Metadata;
+namespace As3\Modlr\Metadata\Properties;
 
 use As3\Modlr\Exception\MetadataException;
+use As3\Modlr\Metadata\EmbedMetadata;
 
 /**
- * Defines metadata for an embedded field.
+ * Defines metadata for an embedded property.
  * Should be loaded using the MetadataFactory, not instantiated directly.
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class EmbeddedPropMetadata extends FieldMetadata
+class EmbeddedMetadata extends PropertyMetadata
 {
     /**
+     * READ-ONLY.
      * The embedded metadata for this embedded property.
      *
      * @var EmbedMetadata
@@ -20,6 +22,7 @@ class EmbeddedPropMetadata extends FieldMetadata
     public $embedMeta;
 
     /**
+     * READ-ONLY.
      * The embed type: one or many
      *
      * @var string
@@ -42,13 +45,31 @@ class EmbeddedPropMetadata extends FieldMetadata
     }
 
     /**
-     * Determines if this is a one (single) embed.
+     * Gets the embed metadata instance.
      *
-     * @return  bool
+     * @return  EmbedMetadata
      */
-    public function isOne()
+    public function getEmbedMetadata()
     {
-        return 'one' === $this->embedType;
+        return $this->embedMeta;
+    }
+
+    /**
+     * Gets the embed type: one or many.
+     *
+     * @return  string
+     */
+    public function getEmbedType()
+    {
+        return $this->embedType;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getType()
+    {
+        return sprintf('embed-%s', $this->embedType);
     }
 
     /**
@@ -59,6 +80,16 @@ class EmbeddedPropMetadata extends FieldMetadata
     public function isMany()
     {
         return 'many' === $this->embedType;
+    }
+
+    /**
+     * Determines if this is a one (single) embed.
+     *
+     * @return  bool
+     */
+    public function isOne()
+    {
+        return 'one' === $this->embedType;
     }
 
     /**

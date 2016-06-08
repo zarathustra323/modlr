@@ -22,14 +22,14 @@ interface StorageMetadataFactoryInterface
     /**
      * Handles additional metadata operations on the Factory load.
      *
-     * @param   EntityMetadata
+     * @param   EntityMetadata   $metadata
      */
     public function handleLoad(EntityMetadata $metadata);
 
     /**
      * Handles additional validation specific to this storage layaer.
      *
-     * @param   EntityMetadata
+     * @param   EntityMetadata   $metadata
      * @throws  \As3\Modlr\Exception\MetadataException On invalid metadata.
      */
     public function handleValidate(EntityMetadata $metadata);

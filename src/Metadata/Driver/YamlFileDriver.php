@@ -2,9 +2,10 @@
 
 namespace As3\Modlr\Metadata\Driver;
 
-use As3\Modlr\Metadata;
-use As3\Modlr\Exception\RuntimeException;
 use As3\Modlr\Exception\MetadataException;
+use As3\Modlr\Exception\RuntimeException;
+use As3\Modlr\Metadata;
+use As3\Modlr\Metadata\Interfaces\MetadataPropertiesInterface;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -85,6 +86,7 @@ final class YamlFileDriver extends AbstractFileDriver
 
         $this->setAttributes($mixin, $mapping['attributes']);
         $this->setRelationships($mixin, $mapping['relationships']);
+        $this->setEmbeds($mixin, $mapping['embeds']);
         return $mixin;
     }
 
@@ -201,11 +203,11 @@ final class YamlFileDriver extends AbstractFileDriver
     /**
      * Sets the entity attribute metadata from the metadata mapping.
      *
-     * @param   Metadata\Interfaces\AttributeInterface  $metadata
-     * @param   array                                   $attrMapping
-     * @return  Metadata\EntityMetadata
+     * @param   MetadataPropertiesInterface $metadata
+     * @param   array                       $attrMapping
+     * @return  MetadataPropertiesInterface
      */
-    protected function setAttributes(Metadata\Interfaces\AttributeInterface $metadata, array $attrMapping)
+    protected function setAttributes(MetadataPropertiesInterface $metadata, array $attrMapping)
     {
         foreach ($attrMapping as $key => $mapping) {
             if (!is_array($mapping)) {
@@ -220,7 +222,7 @@ final class YamlFileDriver extends AbstractFileDriver
                 $mapping['search'] = [];
             }
 
-            $attribute = new Metadata\AttributeMetadata($key, $mapping['type'], $this->isMixin($metadata));
+            $attribute = new Metadata\Properties\AttributeMetadata($key, $mapping['type'], $this->isMixin($metadata));
 
             if (isset($mapping['description'])) {
                 $attribute->description = $mapping['description'];
@@ -252,7 +254,7 @@ final class YamlFileDriver extends AbstractFileDriver
                 $attribute->enableSerialize($mapping['serialize']);
             }
 
-            $metadata->addAttribute($attribute);
+            $metadata->addProperty($attribute);
         }
         return $metadata;
     }
@@ -260,11 +262,11 @@ final class YamlFileDriver extends AbstractFileDriver
     /**
      * Sets the entity embed metadata from the metadata mapping.
      *
-     * @param   Metadata\Interfaces\EmbedInterface  $metadata
+     * @param   MetadataPropertiesInterface  $metadata
      * @param   array                               $embedMapping
      * @return  Metadata\EntityMetadata
      */
-    protected function setEmbeds(Metadata\Interfaces\EmbedInterface $metadata, array $embedMapping)
+    protected function setEmbeds(MetadataPropertiesInterface $metadata, array $embedMapping)
     {
         foreach ($embedMapping as $key => $mapping) {
             if (!is_array($mapping)) {
@@ -283,13 +285,13 @@ final class YamlFileDriver extends AbstractFileDriver
             if (null === $embedMeta) {
                 continue;
             }
-            $property = new Metadata\EmbeddedPropMetadata($key, $mapping['type'], $embedMeta, $this->isMixin($metadata));
+            $property = new Metadata\Properties\EmbeddedMetadata($key, $mapping['type'], $embedMeta, $this->isMixin($metadata));
 
             if (isset($mapping['serialize'])) {
                 $property->enableSerialize($mapping['serialize']);
             }
 
-            $metadata->addEmbed($property);
+            $metadata->addProperty($property);
         }
         return $metadata;
     }
@@ -316,12 +318,12 @@ final class YamlFileDriver extends AbstractFileDriver
     /**
      * Sets the entity relationship metadata from the metadata mapping.
      *
-     * @param   Metadata\Interfaces\RelationshipInterface   $metadata
-     * @param   array                                       $relMapping
-     * @return  Metadata\Interfaces\RelationshipInterface
+     * @param   MetadataPropertiesInterface $metadata
+     * @param   array                       $relMapping
+     * @return  MetadataPropertiesInterface
      * @throws  RuntimeException If the related entity type was not found.
      */
-    protected function setRelationships(Metadata\Interfaces\RelationshipInterface $metadata, array $relMapping)
+    protected function setRelationships(MetadataPropertiesInterface $metadata, array $relMapping)
     {
         foreach ($relMapping as $key => $mapping) {
             if (!is_array($mapping)) {
@@ -340,7 +342,7 @@ final class YamlFileDriver extends AbstractFileDriver
                 $mapping['search'] = [];
             }
 
-            $relationship = new Metadata\RelationshipMetadata($key, $mapping['type'], $mapping['entity'], $this->isMixin($metadata));
+            $relationship = new Metadata\Properties\RelationshipMetadata($key, $mapping['type'], $mapping['entity'], $this->isMixin($metadata));
 
             if (isset($mapping['description'])) {
                 $relationship->description = $mapping['description'];
@@ -373,7 +375,7 @@ final class YamlFileDriver extends AbstractFileDriver
                 $relationship->enableSerialize($mapping['serialize']);
             }
 
-            $metadata->addRelationship($relationship);
+            $metadata->addProperty($relationship);
         }
         return $metadata;
     }
@@ -381,10 +383,10 @@ final class YamlFileDriver extends AbstractFileDriver
     /**
      * Determines if a metadata instance is a mixin.
      *
-     * @param   Metadata\Interfaces\PropertyInterface   $metadata
+     * @param   object      $metadata
      * @return  bool
      */
-    protected function isMixin(Metadata\Interfaces\PropertyInterface $metadata)
+    protected function isMixin($metadata)
     {
         return $metadata instanceof Metadata\MixinMetadata;
     }
