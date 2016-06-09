@@ -283,7 +283,7 @@ class EntityUtility
                 if (false === $related->hasRelationship($relationship->inverseField)) {
                     throw MetadataException::invalidMetadata($type, 'The relationship is inverse, but the related model does not contain the specified inverse field.');
                 }
-                $relatedRel = $related->getRelationship($relationship->inverseField);
+                $relatedRel = $related->getProperty($relationship->inverseField);
                 if (true === $relatedRel->isInverse) {
                     throw MetadataException::invalidMetadata($type, 'The relationship is inverse, but the relationship it references is also inverse.');
                 }
