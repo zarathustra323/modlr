@@ -2,7 +2,10 @@
 
 namespace As3\Modlr\Model\Core;
 
+use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\EntityMetadata;
+use As3\Modlr\Model\Embed;
+use As3\Modlr\Model\Model;
 use As3\Modlr\Store\Store;
 
 /**
@@ -67,6 +70,20 @@ class Properties
         $this->metadata = $metadata;
         $this->store = $store;
         $this->initialize($original);
+    }
+
+    /**
+     * Supresses the metadata and store properties when using var_dump.
+     *
+     * @return  array
+     */
+    public function __debugInfo()
+    {
+        $vars = get_object_vars($this);
+        foreach (['metadata', 'store'] as $key) {
+            $vars[$key] = sprintf('(Dump class %s directly to view)', get_class($vars[$key]));
+        }
+        return $vars;
     }
 
     /**
@@ -179,12 +196,46 @@ class Properties
         }
 
         if (true === $propMeta->isAttribute()) {
-            return $this->store->convertAttributeValue($attrMeta->dataType, $this->original[$key]);
+            return $this->store->convertAttributeValue($propMeta->dataType, $this->original[$key]);
         }
         if (true === $propMeta->isRelationshipOne()) {
-            return $this->store->loadProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
+            return $this->createProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
+        }
+        if (true === $propMeta->isEmbedOne()) {
+            return $this->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original['key']);
         }
         // @todo Load the lazy model collection and embeds.
+    }
+
+    /**
+     * Creates an Embed model.
+     *
+     * @param   EmbedMetadata   $embedMeta
+     * @param   array           $data
+     * @return  Embed
+     */
+    private function createEmbedModel(EmbedMetadata $embedMeta, array $data)
+    {
+        return new Embed($embedMeta, $this->store, $data);
+    }
+
+    /**
+     * Creates a proxy Model.
+     * If the Model is already loaded in-memory, will use that instance instead.
+     *
+     * @return  Model
+     */
+    private function createProxyModel($modelType, $identifier)
+    {
+        $identifier = $this->store->convertId($identifier);
+        $cache = $this->store->getModelCache();
+        if (true === $cache->has($modelType, $identifier)) {
+            return $cache->get($modelType, $identifier);
+        }
+        $metadata = $this->store->getMetadataForType($modelType);
+        $model = new Model($metadata, $identifier, $this->store);
+        $cache->push($model);
+        return $model;
     }
 
     /**

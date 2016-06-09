@@ -94,6 +94,16 @@ class Store
     }
 
     /**
+     * Gets the in-memory Model cache.
+     *
+     * @return  Cache
+     */
+    public function getModelCache()
+    {
+        return $this->cache;
+    }
+
+    /**
      * Returns the available type keys from the MetadataFactory
      *
      * @return  array
@@ -170,6 +180,17 @@ class Store
             throw StoreException::badRequest(sprintf('Search is not enabled for model type "%s"', $metadata->type));
         }
         return new Collections\Collection($metadata, $this, [], 0);
+    }
+
+    /**
+     * Converts the id value to a normalized string.
+     *
+     * @param   mixed   $identenfier    The identifier to convert.
+     * @return  string
+     */
+    public function convertId($identifier)
+    {
+        return (String) $identifier;
     }
 
     /**
@@ -340,38 +361,6 @@ class Store
         $model->getState()->setNew();
         $this->cache->push($model);
         return $model;
-    }
-
-    /**
-     * Loads a has-one model proxy.
-     *
-     * @param   string  $relatedTypeKey
-     * @param   string  $identifier
-     * @return  Model
-     */
-    public function loadProxyModel($relatedTypeKey, $identifier)
-    {
-        $identifier = $this->convertId($identifier);
-        if (true === $this->cache->has($relatedTypeKey, $identifier)) {
-            return $this->cache->get($relatedTypeKey, $identifier);
-        }
-
-        $metadata = $this->getMetadataForType($relatedTypeKey);
-        $model = new NewModel\Model($metadata, $identifier, $this);
-        // $this->cache->push($model);
-        return $model;
-    }
-
-    /**
-     * Loads an Embed model
-     *
-     * @param   EmbedMetadata   $embedMeta
-     * @param   array           $embed
-     * @return  Embed
-     */
-    public function loadEmbed(EmbedMetadata $embedMeta, array $embed)
-    {
-        return new Embed($embedMeta, $this, $embed);
     }
 
     /**
@@ -638,16 +627,7 @@ class Store
         return $this->convertId($this->getPersisterFor($typeKey)->generateId());
     }
 
-    /**
-     * Converts the id value to a normalized string.
-     *
-     * @param   mixed   $identenfier    The identifier to convert.
-     * @return  string
-     */
-    protected function convertId($identifier)
-    {
-        return (String) $identifier;
-    }
+
 
     /**
      * Gets the metadata for a model type.

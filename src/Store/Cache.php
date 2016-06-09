@@ -2,7 +2,7 @@
 
 namespace As3\Modlr\Store;
 
-use As3\Modlr\Models\Model;
+use As3\Modlr\Model\Model;
 
 /**
  * Manages Model objects that are currently loaded into memory.
