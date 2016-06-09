@@ -6,7 +6,7 @@ use As3\Modlr\DataTypes\TypeFactory;
 use As3\Modlr\Exception\MetadataException;
 use As3\Modlr\Exception\RuntimeException;
 use As3\Modlr\Metadata\EntityMetadata;
-use As3\Modlr\Metadata\Interfaces\MetadataPropertiesInterface;
+use As3\Modlr\Metadata\Interfaces\MetadataInterface;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Rest\RestConfiguration;
 
@@ -97,7 +97,7 @@ class EntityUtility
      */
     public function validateMetadata($requestedType, EntityMetadata $metadata, MetadataFactory $mf)
     {
-        if ($requestedType !== $metadata->type) {
+        if ($requestedType !== $metadata->getKey()) {
             throw MetadataException::invalidMetadata($requestedType, 'Metadata type mismatch.');
         }
         $this->validateMetadataType($metadata);
@@ -122,20 +122,21 @@ class EntityUtility
      */
     public function validateMetadataType(EntityMetadata $metadata)
     {
-        if (true === $metadata->isChildEntity()) {
-            $parentType = $metadata->getParentEntityType();
-            if (0 !== strpos($metadata->type, $parentType)) {
-                throw MetadataException::invalidMetadata($metadata->type, sprintf('Child class types must be prefixed by the parent class. Expected "%s" prefix.', $parentType));
+        $type = $metadata->getKey();
+        if (true === $metadata->isChildModel()) {
+            $parentType = $metadata->getParentModelType();
+            if (0 !== strpos($type, $parentType)) {
+                throw MetadataException::invalidMetadata($type, sprintf('Child class types must be prefixed by the parent class. Expected "%s" prefix.', $parentType));
             }
         }
-        if (false === $this->isEntityTypeValid($metadata->type)) {
-            throw MetadataException::invalidMetadata($metadata->type, sprintf('The entity type is invalid based on the configured name format "%s"', $this->config->getEntityFormat()));
+        if (false === $this->isEntityTypeValid($type)) {
+            throw MetadataException::invalidMetadata($type, sprintf('The entity type is invalid based on the configured name format "%s"', $this->config->getEntityFormat()));
         }
         return true;
     }
 
     /**
-     * Validates the proper entity inheritance on EntityMetadata.
+     * Validates the proper entity inheritance on MetadataInterface.
      *
      * @param   EntityMetadata  $metadata
      * @param   MetadataFactory $mf
@@ -144,55 +145,56 @@ class EntityUtility
      */
     public function validateMetadataInheritance(EntityMetadata $metadata, MetadataFactory $mf)
     {
+        $type = $metadata->getKey();
         if (true === $metadata->isPolymorphic()) {
             foreach ($metadata->ownedTypes as $child) {
 
                 if (false === $this->isEntityTypeValid($child)) {
-                    throw MetadataException::invalidMetadata($metadata->type, sprintf('The owned entity type "%s" is invalid based on the configured name format "%s"', $child, $this->config->getEntityFormat()));
+                    throw MetadataException::invalidMetadata($type, sprintf('The owned entity type "%s" is invalid based on the configured name format "%s"', $child, $this->config->getEntityFormat()));
                 }
 
                 if (false === $mf->metadataExists($child)) {
-                    throw MetadataException::invalidMetadata($metadata->type, sprintf('The entity owns a type "%s" that does not exist.', $child));
+                    throw MetadataException::invalidMetadata($type, sprintf('The entity owns a type "%s" that does not exist.', $child));
                 }
             }
         }
 
         if (false === $metadata->isPolymorphic() && true === $metadata->isAbstract()) {
-            throw MetadataException::invalidMetadata($metadata->type, 'An entity must be polymorphic to be abstract.');
+            throw MetadataException::invalidMetadata($type, 'An entity must be polymorphic to be abstract.');
         }
 
-        if (false === $metadata->isChildEntity()) {
+        if (false === $metadata->isChildModel()) {
             return true;
         }
         if (true === $metadata->isPolymorphic()) {
-            throw MetadataException::invalidMetadata($metadata->type, 'An entity cannot both be polymorphic and be a child.');
+            throw MetadataException::invalidMetadata($type, 'An entity cannot both be polymorphic and be a child.');
         }
-        if ($metadata->extends === $metadata->type) {
-            throw MetadataException::invalidMetadata($metadata->type, 'An entity cannot extend itself.');
+        if ($metadata->extends === $type) {
+            throw MetadataException::invalidMetadata($type, 'An entity cannot extend itself.');
         }
 
         if (false === $mf->metadataExists($metadata->extends)) {
-            throw MetadataException::invalidMetadata($metadata->type, sprintf('The parent entity type "%s" does not exist.', $metadata->extends));
+            throw MetadataException::invalidMetadata($type, sprintf('The parent entity type "%s" does not exist.', $metadata->extends));
         }
 
         $parent = $mf->getMetadataForType($metadata->extends);
         if (false === $parent->isPolymorphic()) {
-            throw MetadataException::invalidMetadata($metadata->type, sprintf('Parent classes must be polymorphic. Parent entity "%s" is not polymorphic.', $metadata->extends));
+            throw MetadataException::invalidMetadata($type, sprintf('Parent classes must be polymorphic. Parent entity "%s" is not polymorphic.', $metadata->extends));
         }
         return true;
     }
 
     /**
-     * Validates entity attributes on the MetadataPropertiesInterface.
+     * Validates entity attributes on the MetadataInterface.
      *
-     * @param   MetadataPropertiesInterface $metadata
-     * @param   MetadataFactory             $mf
+     * @param   MetadataInterface   $metadata
+     * @param   MetadataFactory     $mf
      * @return  bool
      * @throws  MetadataException
      */
-    public function validateMetadataAttributes(MetadataPropertiesInterface $metadata, MetadataFactory $mf)
+    public function validateMetadataAttributes(MetadataInterface $metadata, MetadataFactory $mf)
     {
-        $type = $metadata instanceof EntityMetadata ? $metadata->type : (property_exists($metadata, 'name') ? $metadata->name : '');
+        $type = $metadata->getKey();
         foreach ($metadata->getAttributes() as $key => $attribute) {
 
             if ($key != $attribute->key) {
@@ -207,7 +209,7 @@ class EntityUtility
                 throw MetadataException::invalidMetadata($type, sprintf('The data type "%s" for attribute "%s" is invalid', $attribute->dataType, $attribute->key));
             }
 
-            if ($metadata instanceof EntityMetadata && true === $metadata->isChildEntity()) {
+            if ($metadata instanceof EntityMetadata && true === $metadata->isChildModel()) {
                 $parent = $mf->getMetadataForType($metadata->extends);
                 if ($parent->hasAttribute($attribute->key)) {
                     throw MetadataException::invalidMetadata($type, sprintf('Parent entity type "%s" already contains attribute field "%s"', $parent->type, $attribute->key));
@@ -224,13 +226,13 @@ class EntityUtility
     }
 
     /**
-     * Validates entity relationships on EntityMetadata.
+     * Validates entity relationships on MetadataInterface.
      *
-     * @param   MetadataPropertiesInterface $metadata
-     * @param   MetadataFactory             $mf
+     * @param   MetadataInterface   $metadata
+     * @param   MetadataFactory     $mf
      * @return  bool
      */
-    public function validateMetadataEmbeds(MetadataPropertiesInterface $metadata, MetadataFactory $mf)
+    public function validateMetadataEmbeds(MetadataInterface $metadata, MetadataFactory $mf)
     {
         foreach ($metadata->getEmbeds() as $key => $embeddedProp) {
             $this->validateMetadataAttributes($embeddedProp->embedMeta, $mf);
@@ -240,51 +242,53 @@ class EntityUtility
     }
 
     /**
-     * Validates entity relationships on EntityMetadata.
+     * Validates entity relationships on MetadataInterface.
      *
-     * @param   EntityMetadata  $metadata
-     * @param   MetadataFactory $mf
+     * @param   MetadataInterface   $metadata
+     * @param   MetadataFactory     $mf
      * @return  bool
      * @throws  MetadataException
      */
-    public function validateMetadataRelationships(EntityMetadata $metadata, MetadataFactory $mf)
+    public function validateMetadataRelationships(MetadataInterface $metadata, MetadataFactory $mf)
     {
+        $type = $metadata->getKey();
+
         foreach ($metadata->getRelationships() as $key => $relationship) {
             if ($key != $relationship->key) {
-                throw MetadataException::invalidMetadata($metadata->type, sprintf('Relationship key mismtach. "%s" !== "%s"', $key, $relationship->key));
+                throw MetadataException::invalidMetadata($type, sprintf('Relationship key mismtach. "%s" !== "%s"', $key, $relationship->key));
             }
             if (false === $this->isFieldKeyValid($relationship->key)) {
-                throw MetadataException::invalidMetadata($metadata->type, sprintf('The relationship key "%s" is invalid based on the configured name format "%s"', $relationship->key, $this->config->getFieldKeyFormat()));
+                throw MetadataException::invalidMetadata($type, sprintf('The relationship key "%s" is invalid based on the configured name format "%s"', $relationship->key, $this->config->getFieldKeyFormat()));
             }
-            if (true === $metadata->isChildEntity()) {
+            if ($metadata instanceof EntityMetadata && true === $metadata->isChildModel()) {
                 $parent = $mf->getMetadataForType($metadata->extends);
                 if ($parent->hasRelationship($relationship->key)) {
-                    throw MetadataException::invalidMetadata($metadata->type, sprintf('Parent entity type "%s" already contains relationship field "%s"', $parent->type, $relationship->key));
+                    throw MetadataException::invalidMetadata($type, sprintf('Parent entity type "%s" already contains relationship field "%s"', $parent->type, $relationship->key));
                 }
             }
             if (false === $this->isEntityTypeValid($relationship->entityType)) {
-                throw MetadataException::invalidMetadata($metadata->type, sprintf('The related model "%s" for relationship "%s" is invalid based on the configured name format "%s"', $relationship->entityType, $relationship->key, $this->config->getEntityFormat()));
+                throw MetadataException::invalidMetadata($type, sprintf('The related model "%s" for relationship "%s" is invalid based on the configured name format "%s"', $relationship->entityType, $relationship->key, $this->config->getEntityFormat()));
             }
             if (false === $mf->metadataExists($relationship->entityType)) {
-                throw MetadataException::invalidMetadata($metadata->type, sprintf('The related model "%s" for relationship "%s" does not exist.', $relationship->entityType, $relationship->key));
+                throw MetadataException::invalidMetadata($type, sprintf('The related model "%s" for relationship "%s" does not exist.', $relationship->entityType, $relationship->key));
             }
             if (true === $relationship->isInverse) {
                 if ('one' === $relationship->relType) {
-                    throw MetadataException::invalidMetadata($metadata->type, 'The relationship is inverse and one, which is currently not supported.');
+                    throw MetadataException::invalidMetadata($type, 'The relationship is inverse and one, which is currently not supported.');
                 }
                 if (empty($relationship->inverseField)) {
-                    throw MetadataException::invalidMetadata($metadata->type, 'The relationship is inverse, but no inverse field was specified.');
+                    throw MetadataException::invalidMetadata($type, 'The relationship is inverse, but no inverse field was specified.');
                 }
-                $related = ($relationship->entityType === $metadata->type) ? $metadata : $mf->getMetadataForType($relationship->entityType);
+                $related = ($relationship->entityType === $type) ? $metadata : $mf->getMetadataForType($relationship->entityType);
                 if (false === $related->hasRelationship($relationship->inverseField)) {
-                    throw MetadataException::invalidMetadata($metadata->type, 'The relationship is inverse, but the related model does not contain the specified inverse field.');
+                    throw MetadataException::invalidMetadata($type, 'The relationship is inverse, but the related model does not contain the specified inverse field.');
                 }
                 $relatedRel = $related->getRelationship($relationship->inverseField);
                 if (true === $relatedRel->isInverse) {
-                    throw MetadataException::invalidMetadata($metadata->type, 'The relationship is inverse, but the relationship it references is also inverse.');
+                    throw MetadataException::invalidMetadata($type, 'The relationship is inverse, but the relationship it references is also inverse.');
                 }
                 if ('one' !== $relatedRel->relType) {
-                    throw MetadataException::invalidMetadata($metadata->type, 'The relationship is inverse and many, but it\'s reference is not a type of one.');
+                    throw MetadataException::invalidMetadata($type, 'The relationship is inverse and many, but it\'s reference is not a type of one.');
                 }
 
             }
