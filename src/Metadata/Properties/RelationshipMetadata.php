@@ -76,11 +76,22 @@ class RelationshipMetadata extends PropertyMetadata
     }
 
     /**
+     * Is an alias for @see getModelType().
+     *
+     * @deprecated
+     * @return  string
+     */
+    public function getEntityType()
+    {
+        return $this->getModelType();
+    }
+
+    /**
      * Gets the model type that this property is related to.
      *
      * @return  string
      */
-    public function getEntityType()
+    public function getModelType()
     {
         return $this->entityType;
     }
@@ -101,6 +112,16 @@ class RelationshipMetadata extends PropertyMetadata
     public function getType()
     {
         return sprintf('relationship-%s', $this->getRelType());
+    }
+
+    /**
+     * Determines if this is an inverse (non-owning) relationship.
+     *
+     * @return  bool
+     */
+    public function isInverse()
+    {
+        return $this->isInverse;
     }
 
     /**
