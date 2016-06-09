@@ -115,6 +115,80 @@ abstract class PropertyMetadata
     abstract public function getType();
 
     /**
+     * Determines if this property is an attribute.
+     *
+     * @return  bool
+     */
+    public function isAttribute()
+    {
+        return 'attribute' === $this->getType();
+    }
+
+    /**
+     * Determines if this property is an embed.
+     *
+     * @return  bool
+     */
+    public function isEmbed()
+    {
+        return 'embed-one'  === $this->getType()
+            || 'embed-many' === $this->getType()
+        ;
+    }
+
+    /**
+     * Determines if this property is an embed-many.
+     *
+     * @return  bool
+     */
+    public function isEmbedMany()
+    {
+        return 'embed-many' === $this->getType();
+    }
+
+    /**
+     * Determines if this property is an embed-one.
+     *
+     * @return  bool
+     */
+    public function isEmbedOne()
+    {
+        return 'embed-one' === $this->getType();
+    }
+
+    /**
+     * Determines if this property is a relationship.
+     *
+     * @return  bool
+     */
+    public function isRelationship()
+    {
+        return 'relationship-one'  === $this->getType()
+            || 'relationship-many' === $this->getType()
+        ;
+    }
+
+    /**
+     * Determines if this property is an relationship-many.
+     *
+     * @return  bool
+     */
+    public function isRelationshipMany()
+    {
+        return 'relationship-many' === $this->getType();
+    }
+
+    /**
+     * Determines if this property is an relationship-one.
+     *
+     * @return  bool
+     */
+    public function isRelationshipOne()
+    {
+        return 'relationship-one' === $this->getType();
+    }
+
+    /**
      * Determines whether this propety is stored in search.
      *
      * @return  bool

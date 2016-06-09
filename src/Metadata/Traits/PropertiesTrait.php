@@ -284,7 +284,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'attribute' === $property->getType();
+        return $property->isAttribute();
     }
 
     /**
@@ -298,9 +298,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'embed-one'  === $property->getType()
-            || 'embed-many' === $property->getType()
-        ;
+        return $property->isEmbed();
     }
 
     /**
@@ -314,7 +312,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'embed-many' === $property->getType();
+        return $property->isEmbedMany();
     }
 
     /**
@@ -328,7 +326,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'embed-one' === $property->getType();
+        return $property->isEmbedOne();
     }
 
     /**
@@ -342,9 +340,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'relationship-one'  === $property->getType()
-            || 'relationship-many' === $property->getType()
-        ;
+        return $property->isRelationship();
     }
 
     /**
@@ -358,7 +354,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'relationship-many' === $property->getType();
+        return $property->isRelationshipMany();
     }
 
     /**
@@ -372,7 +368,7 @@ trait PropertiesTrait
         if (null === $property = $this->getProperty($key)) {
             return false;
         }
-        return 'relationship-one' === $property->getType();
+        return $property->isRelationshipOne();
     }
 
     /**
