@@ -11,7 +11,7 @@ use As3\Modlr\Exception\MetadataException;
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class MixinMetadata implements Interfaces\MetadataPropertiesInterface
+class MixinMetadata implements Interfaces\MetadataInterface
 {
     /**
      * Uses properties.
@@ -37,12 +37,23 @@ class MixinMetadata implements Interfaces\MetadataPropertiesInterface
     }
 
     /**
-     * Gets the mixin name.
+     * Gets the mixin key.
      *
+     * @return  string
+     */
+    public function getKey()
+    {
+        return $this->name;
+    }
+
+    /**
+     * Is an alias for @see getKey().
+     *
+     * @deprecated
      * @return  string
      */
     public function getName()
     {
-        return $this->name;
+        return $this->getKey();
     }
 }

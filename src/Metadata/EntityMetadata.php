@@ -11,7 +11,7 @@ use As3\Modlr\Metadata\Properties\PropertyMetadata;
  *
  * @author  Jacob Bare <jacob.bare@gmail.com>
  */
-class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\MetadataPropertiesInterface, Interfaces\MixinInterface
+class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelMetadataInterface
 {
     /**
      * Uses mixins.
@@ -108,6 +108,16 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\Metada
     public function __construct($type)
     {
         $this->setType($type);
+    }
+
+    /**
+     * Gets the model type key.
+     *
+     * @return  string
+     */
+    public function getKey()
+    {
+        return $this->type;
     }
 
     /**

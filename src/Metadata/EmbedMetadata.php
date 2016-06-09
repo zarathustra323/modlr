@@ -10,7 +10,7 @@ use As3\Modlr\Exception\MetadataException;
  *
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class EmbedMetadata implements Interfaces\MetadataPropertiesInterface, Interfaces\MixinInterface
+class EmbedMetadata implements Interfaces\ModelMetadataInterface
 {
     /**
      * Uses mixins.
@@ -41,13 +41,24 @@ class EmbedMetadata implements Interfaces\MetadataPropertiesInterface, Interface
     }
 
     /**
-     * Gets the embed name/key.
+     * Gets the embed key.
      *
+     * @return  string
+     */
+    public function getKey()
+    {
+        return $this->name;
+    }
+
+    /**
+     * Is an alias for @see getKey().
+     *
+     * @deprecated
      * @return  string
      */
     public function getName()
     {
-        return $this->name;
+        return $this->getKey();
     }
 
     /**
