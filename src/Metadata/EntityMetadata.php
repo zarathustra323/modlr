@@ -111,12 +111,24 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\Metada
     }
 
     /**
-     * Gets the parent model type.
-     * For models that are extended.
+     * Is an alias for @see getParentModelType().
      *
+     * @deprecated
      * @return  string|null
      */
     public function getParentEntityType()
+    {
+        return $this->getParentModelType();
+    }
+
+    /**
+     * Gets the parent model type.
+     * For models that are extended.
+     *
+     * @deprecated
+     * @return  string|null
+     */
+    public function getParentModelType()
     {
         return $this->extends;
     }
@@ -132,13 +144,24 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\Metada
     }
 
     /**
-     * Determines if this is a child model of another model.
+     * Is an alias for @see isChildModel().
      *
+     * @deprecated
      * @return  bool
      */
     public function isChildEntity()
     {
-        return null !== $this->getParentEntityType();
+        return $this->isChildModel();
+    }
+
+    /**
+     * Determines if this is a child model of another model.
+     *
+     * @return  bool
+     */
+    public function isChildModel()
+    {
+        return null !== $this->getParentModelType();
     }
 
     /**
