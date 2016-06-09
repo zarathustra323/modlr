@@ -66,6 +66,13 @@ interface MetadataPropertiesInterface
     public function hasProperty($key);
 
     /**
+     * Determines whether any search properties are defined.
+     *
+     * @return  bool
+     */
+    public function hasSearchProperties();
+
+    /**
      * Determines if the property is an attribute.
      *
      * @param   string  $key
@@ -120,13 +127,6 @@ interface MetadataPropertiesInterface
      * @return  bool
      */
     public function isRelationshipOne($key);
-
-    /**
-     * Determines whether search is enabled.
-     *
-     * @return  bool
-     */
-    public function isSearchEnabled();
 
     /**
      * Determines if a property (attribute or relationship) is indexed for search.

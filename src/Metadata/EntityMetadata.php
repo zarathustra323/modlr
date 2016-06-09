@@ -138,7 +138,7 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\Metada
      */
     public function isChildEntity()
     {
-        return null !== $this->getParentModelType();
+        return null !== $this->getParentEntityType();
     }
 
     /**

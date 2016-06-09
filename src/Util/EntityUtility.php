@@ -6,8 +6,7 @@ use As3\Modlr\DataTypes\TypeFactory;
 use As3\Modlr\Exception\MetadataException;
 use As3\Modlr\Exception\RuntimeException;
 use As3\Modlr\Metadata\EntityMetadata;
-use As3\Modlr\Metadata\Interfaces\EmbedInterface;
-use As3\Modlr\Metadata\Interfaces\AttributeInterface;
+use As3\Modlr\Metadata\Interfaces\MetadataPropertiesInterface;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Rest\RestConfiguration;
 
@@ -184,14 +183,14 @@ class EntityUtility
     }
 
     /**
-     * Validates entity attributes on the AttributeInterface.
+     * Validates entity attributes on the MetadataPropertiesInterface.
      *
-     * @param   AttributeInterface  $metadata
-     * @param   MetadataFactory     $mf
+     * @param   MetadataPropertiesInterface $metadata
+     * @param   MetadataFactory             $mf
      * @return  bool
      * @throws  MetadataException
      */
-    public function validateMetadataAttributes(AttributeInterface $metadata, MetadataFactory $mf)
+    public function validateMetadataAttributes(MetadataPropertiesInterface $metadata, MetadataFactory $mf)
     {
         $type = $metadata instanceof EntityMetadata ? $metadata->type : (property_exists($metadata, 'name') ? $metadata->name : '');
         foreach ($metadata->getAttributes() as $key => $attribute) {
@@ -227,11 +226,11 @@ class EntityUtility
     /**
      * Validates entity relationships on EntityMetadata.
      *
-     * @param   EmbedInterface  $metadata
-     * @param   MetadataFactory $mf
+     * @param   MetadataPropertiesInterface $metadata
+     * @param   MetadataFactory             $mf
      * @return  bool
      */
-    public function validateMetadataEmbeds(EmbedInterface $metadata, MetadataFactory $mf)
+    public function validateMetadataEmbeds(MetadataPropertiesInterface $metadata, MetadataFactory $mf)
     {
         foreach ($metadata->getEmbeds() as $key => $embeddedProp) {
             $this->validateMetadataAttributes($embeddedProp->embedMeta, $mf);
