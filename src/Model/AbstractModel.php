@@ -212,7 +212,7 @@ abstract class AbstractModel
      */
     public function reload()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $this->touch(true);
         return $this;
     }
 
