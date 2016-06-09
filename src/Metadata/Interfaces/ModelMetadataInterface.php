@@ -11,4 +11,10 @@ use As3\Modlr\Metadata\Properties\PropertyMetadata;
  */
 interface ModelMetadataInterface extends MetadataInterface, MixinInterface
 {
+    /**
+     * Determines if the model is embedded.
+     *
+     * @return  bool
+     */
+    public function isEmbedded();
 }

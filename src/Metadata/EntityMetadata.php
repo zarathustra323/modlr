@@ -175,6 +175,14 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function isEmbedded()
+    {
+        return false;
+    }
+
+    /**
      * Whether this metadata represents a polymorphic model.
      *
      * @return  bool

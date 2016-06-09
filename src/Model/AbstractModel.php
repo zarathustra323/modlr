@@ -20,15 +20,23 @@ abstract class AbstractModel
     private $properties;
 
     /**
+     * Whether the model has been flagged for deletion.
+     *
+     * @var bool
+     */
+    private $deleted = false;
+
+    /**
      * Constructor.
      *
      * @param   ModelMetadataInterface  $metadata
      * @param   Store                   $store
      * @param   array|null              $properties
+     * @param   bool                    $new
      */
-    public function __construct(ModelMetadataInterface $metadata, Store $store, array $properties = null)
+    public function __construct(ModelMetadataInterface $metadata, Store $store, array $properties = null, $new = false)
     {
-        $this->properties = new Properties($metadata, $store, $properties);
+        $this->properties = new Properties($metadata, $store, $properties, $new);
     }
 
     /**
@@ -52,11 +60,17 @@ abstract class AbstractModel
      *
      * @api
      * @return  self
-     * @throws  \RuntimeException   If a new (unsaved) model is deleted.
+     * @throws  \UnexpectedValueException   If a new (unsaved) model is deleted.
      */
     public function delete()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        if (true === $this->getMetadata()->isEmbedded()) {
+            return $this;
+        }
+        if (true === $this->isNew()) {
+            throw new \UnexpectedValueException('You cannot delete a new model');
+        }
+        $this->deleted = true;
         return $this;
     }
 
@@ -71,6 +85,7 @@ abstract class AbstractModel
      */
     public function get($key)
     {
+        $this->touch();
         return $this->properties->get($key);
     }
 
@@ -135,9 +150,9 @@ abstract class AbstractModel
      */
     public function isDeleted()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
+        return $this->deleted;
     }
+
     /**
      * Determines if the model is in a dirty state.
      *
@@ -146,8 +161,7 @@ abstract class AbstractModel
      */
     public function isDirty()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
+        return $this->properties->areDirty();
     }
 
     /**
@@ -159,8 +173,7 @@ abstract class AbstractModel
      */
     public function isLoaded()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
+        return $this->properties->areLoaded();
     }
 
     /**
@@ -172,8 +185,7 @@ abstract class AbstractModel
      */
     public function isNew()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
+        return $this->properties->areNew();
     }
 
     /**
@@ -278,5 +290,26 @@ abstract class AbstractModel
     public function _getProperties()
     {
         return $this->properties;
+    }
+
+    /**
+     * Touches the model and loads from the persistence layer if currently unloaded.
+     *
+     * @param   bool    $force  Whether to force the load, even if the model is currently loaded.
+     * @return  self
+     */
+    protected function touch($force = false)
+    {
+        if (true === $this->getMetadata()->isEmbedded() || true === $this->isDeleted()) {
+            return $this;
+        }
+        if (false === $this->isLoaded() || true == $force) {
+            $store = $this->getStore();
+            $metadata = $this->getMetadata();
+
+            $record = $store->retrieveRecord($this->getType(), $this->getId());
+            $this->properties = new Properties($metadata, $store, $record['properties']);
+        }
+        return $this;
     }
 }

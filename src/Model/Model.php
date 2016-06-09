@@ -24,11 +24,12 @@ class Model extends AbstractModel
      * @param   string                  $identifier
      * @param   Store                   $store
      * @param   array|null              $properties
+     * @param   bool                    $new
      */
-    public function __construct(ModelMetadataInterface $metadata, $identifier, Store $store, array $properties = null)
+    public function __construct(ModelMetadataInterface $metadata, $identifier, Store $store, array $properties = null, $new = false)
     {
         $this->identifier = $identifier;
-        parent::__construct($metadata, $store, $properties);
+        parent::__construct($metadata, $store, $properties, $new);
     }
 
     /**

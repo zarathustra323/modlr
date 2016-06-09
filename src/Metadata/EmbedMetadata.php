@@ -64,6 +64,14 @@ class EmbedMetadata implements Interfaces\ModelMetadataInterface
     /**
      * {@inheritdoc}
      */
+    public function isEmbedded()
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     protected function applyMixinProperties(MixinMetadata $mixin)
     {
         foreach ($mixin->getProperties() as $property) {

@@ -3,9 +3,11 @@
 namespace As3\Modlr\Model\Core;
 
 use As3\Modlr\Metadata\EmbedMetadata;
-use As3\Modlr\Metadata\EntityMetadata;
+use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
+use As3\Modlr\Metadata\Properties\RelationshipMetadata;
 use As3\Modlr\Model\Embed;
 use As3\Modlr\Model\Model;
+use As3\Modlr\Models\Collections;
 use As3\Modlr\Store\Store;
 
 /**
@@ -24,7 +26,7 @@ class Properties
     protected $converted = [];
 
     /**
-     * @var EntityMetadata
+     * @var ModelMetadataInterface
      */
     protected $metadata;
 
@@ -55,6 +57,16 @@ class Properties
     protected $remove = [];
 
     /**
+     * The properties' state.
+     *
+     * @var bool[]
+     */
+    protected $state = [
+        'new'       => false,
+        'loaded'    => false,
+    ];
+
+    /**
      * @var Store
      */
     protected $store;
@@ -64,12 +76,43 @@ class Properties
      *
      * @param   array   $original   Any original properties to apply.
      */
-    public function __construct(EntityMetadata $metadata, Store $store, array $original = null)
+    public function __construct(ModelMetadataInterface $metadata, Store $store, array $original = null, $new = false)
     {
+        $this->setStateNew($new);
         $this->converted = $this->original;
         $this->metadata = $metadata;
         $this->store = $store;
         $this->initialize($original);
+    }
+
+    /**
+     * Determines if any of the properties are dirty.
+     *
+     * @return  bool
+     */
+    public function areDirty()
+    {
+        return !empty($this->modified) || !empty($this->remove);
+    }
+
+    /**
+     * Determines if the properties have been loaded from the persistence layer.
+     *
+     * @return  bool
+     */
+    public function areLoaded()
+    {
+        return $this->state['loaded'];
+    }
+
+    /**
+     * Determines if the properties are new
+     *
+     * @return  bool
+     */
+    public function areNew()
+    {
+        return $this->state['new'];
     }
 
     /**
@@ -114,7 +157,7 @@ class Properties
     /**
      * Gets the metadata that represents this model's properties.
      *
-     * @return  EntityMetadata
+     * @return  ModelMetadataInterface
      */
     public function getMetadata()
     {
@@ -149,7 +192,7 @@ class Properties
     }
 
     /**
-     * Sets a new value to a property.
+     * Flags a property for removal.
      *
      * @param   string  $key    The property key.
      * @return  self
@@ -186,12 +229,20 @@ class Properties
     {
         $propMeta = $this->metadata->getProperty($key);
 
+        if (true === $propMeta->isRelationshipMany() && true === $propMeta->isInverse()) {
+            throw new \BadMethodCallException('Inverse relationship loading is not yet implemented.');
+        }
+
         if (!isset($this->original[$key])) {
             if (true === $propMeta->isAttribute()) {
                 // Load the default attribute value.
                 return $propMeta->defaultValue;
             }
-            // @todo elseif isHasMany return empty Collection; elseif isEmbedMany return empty Collection;
+            if (true === $propMeta->isRelationshipMany()) {
+                // Create empty relationship-many collection.
+                return $this->createCollection($propMeta, []);
+            }
+            // @todo elseif isEmbedMany return empty Collection;
             return;
         }
 
@@ -201,10 +252,34 @@ class Properties
         if (true === $propMeta->isRelationshipOne()) {
             return $this->createProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
         }
+        if (true === $propMeta->isRelationshipMany()) {
+            return $this->createCollection($propMeta, (Array) $this->original[$key]);
+        }
         if (true === $propMeta->isEmbedOne()) {
-            return $this->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original['key']);
+            return $this->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original[$key]);
         }
         // @todo Load the lazy model collection and embeds.
+    }
+
+    /**
+     * Loads a relationship-many model collection.
+     *
+     * @param   RelationshipMetadata    $relMeta
+     * @param   array                   $references
+     * @return  Collections\Collection
+     */
+    private function createCollection(RelationshipMetadata $relMeta, array $references)
+    {
+        $metadata = $this->store->getMetadataForType($relMeta->getModelType());
+
+        $models = [];
+        foreach ($references as $ref) {
+            if (!isset($ref['id']) || !isset($ref['type'])) {
+                continue;
+            }
+            $models[] = $this->createProxyModel($ref['type'], $ref['id']);
+        }
+        return new Collections\Collection($metadata, $this->store, $models, count($models));
     }
 
     /**
@@ -276,13 +351,41 @@ class Properties
      */
     private function initialize(array $properties = null)
     {
-        if (null === $properties) {
+        if (null === $properties || true === $this->areNew()) {
             return $this;
         }
 
         foreach ($properties as $key => $value) {
             $this->original[$key] = $value;
         }
+        $this->setStateLoaded();
+    }
+
+    /**
+     * Sets the properties state to loaded.
+     *
+     * @param   bool    $bit
+     * @return  self
+     */
+    private function setStateLoaded($bit = true)
+    {
+        $this->state['loaded'] = (boolean) $bit;
+        return $this;
+    }
+
+    /**
+     * Sets the properties state to new.
+     *
+     * @param   bool    $bit
+     * @return  self
+     */
+    private function setStateNew($bit = true)
+    {
+        $this->state['new'] = (boolean) $bit;
+        if (true === $bit) {
+            $this->setStateLoaded();
+        }
+        return $this;
     }
 
     // ********
@@ -328,17 +431,6 @@ class Properties
         $this->rollback();
         $this->original = $original;
         return $this;
-    }
-
-
-    /**
-     * Deteremines if the properties have different values from their original state.
-     *
-     * @return  bool
-     */
-    public function areDirty()
-    {
-        return !empty($this->current) || !empty($this->remove);
     }
 
     /**
