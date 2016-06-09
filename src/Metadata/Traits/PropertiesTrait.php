@@ -45,6 +45,28 @@ trait PropertiesTrait
     }
 
     /**
+     * Gets all attribute properties.
+     *
+     * @deprecated
+     * @return  PropertyMetadata[]
+     */
+    public function getAttributes()
+    {
+        static $props;
+        if (null !== $props) {
+            return $props;
+        }
+        $props = [];
+        foreach ($this->getProperties() as $key => $property) {
+            if (false === $this->isAttribute($key)) {
+                continue;
+            }
+            $props[$key] = $property;
+        }
+        return $props;
+    }
+
+    /**
      * Gets all properties that are flagged for autocomplete in search.
      *
      * @return  PropertyMetadata[]
@@ -64,6 +86,28 @@ trait PropertiesTrait
             $attrs[$key] = $attribute;
         }
         return $attrs;
+    }
+
+    /**
+     * Gets all embed properties.
+     *
+     * @deprecated
+     * @return  PropertyMetadata[]
+     */
+    public function getEmbeds()
+    {
+        static $props;
+        if (null !== $props) {
+            return $props;
+        }
+        $props = [];
+        foreach ($this->getProperties() as $key => $property) {
+            if (false === $this->isEmbed($key)) {
+                continue;
+            }
+            $props[$key] = $property;
+        }
+        return $props;
     }
 
     /**
@@ -92,6 +136,28 @@ trait PropertiesTrait
     }
 
     /**
+     * Gets all relationship properties.
+     *
+     * @deprecated
+     * @return  PropertyMetadata[]
+     */
+    public function getRelationships()
+    {
+        static $props;
+        if (null !== $props) {
+            return $props;
+        }
+        $props = [];
+        foreach ($this->getProperties() as $key => $property) {
+            if (false === $this->isRelationship($key)) {
+                continue;
+            }
+            $props[$key] = $property;
+        }
+        return $props;
+    }
+
+    /**
      * Gets all properties that are flagged for storage in search.
      *
      * @return  PropertyMetadata[]
@@ -114,6 +180,54 @@ trait PropertiesTrait
     }
 
     /**
+     * Alias for @see isAttribute().
+     *
+     * @deprecated
+     * @param   string  $key
+     * @return  bool
+     */
+    public function hasAttribute($key)
+    {
+        return $this->isAttribute($key);
+    }
+
+    /**
+     * Determines any attribute properties exist.
+     *
+     * @deprecated
+     * @return  bool
+     */
+    public function hasAttributes()
+    {
+        $props = $this->getAttributes();
+        return !empty($props);
+    }
+
+    /**
+     * Alias for @see isEmbed().
+     *
+     * @deprecated
+     * @param   string  $key
+     * @return  bool
+     */
+    public function hasEmbed($key)
+    {
+        return $this->isEmbed($key);
+    }
+
+    /**
+     * Determines any embed properties exist.
+     *
+     * @deprecated
+     * @return  bool
+     */
+    public function hasEmbeds()
+    {
+        $props = $this->getEmbeds();
+        return !empty($props);
+    }
+
+    /**
      * Determines if a property exists.
      *
      * @param   string  $key
@@ -122,6 +236,30 @@ trait PropertiesTrait
     public function hasProperty($key)
     {
         return isset($this->properties[$key]);
+    }
+
+    /**
+     * Alias for @see isRelationship().
+     *
+     * @deprecated
+     * @param   string  $key
+     * @return  bool
+     */
+    public function hasRelationship($key)
+    {
+        return $this->isRelationship($key);
+    }
+
+    /**
+     * Determines any relationship properties exist.
+     *
+     * @deprecated
+     * @return  bool
+     */
+    public function hasRelationships()
+    {
+        $props = $this->getRelationships();
+        return !empty($props);
     }
 
     /**
