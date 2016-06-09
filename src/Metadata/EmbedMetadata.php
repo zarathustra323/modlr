@@ -41,6 +41,16 @@ class EmbedMetadata implements Interfaces\ModelMetadataInterface
     }
 
     /**
+     * Prevents serialization of sub-property properties.
+     *
+     * @return  array
+     */
+    public function __sleep()
+    {
+        return $this->getPropertySleepVars();
+    }
+
+    /**
      * Gets the embed key.
      *
      * @return  string

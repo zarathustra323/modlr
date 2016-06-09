@@ -37,6 +37,16 @@ class MixinMetadata implements Interfaces\MetadataInterface
     }
 
     /**
+     * Prevents serialization of sub-property properties.
+     *
+     * @return  array
+     */
+    public function __sleep()
+    {
+        return $this->getPropertySleepVars();
+    }
+
+    /**
      * Gets the mixin key.
      *
      * @return  string

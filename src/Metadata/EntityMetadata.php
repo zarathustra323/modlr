@@ -111,6 +111,16 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
     }
 
     /**
+     * Prevents serialization of sub-property properties.
+     *
+     * @return  array
+     */
+    public function __sleep()
+    {
+        return $this->getPropertySleepVars();
+    }
+
+    /**
      * Gets the model type key.
      *
      * @return  string

@@ -14,11 +14,35 @@ trait PropertiesTrait
 {
     /**
      * READ-ONLY.
+     * Attribute properties assigned to this metadata instance.
+     *
+     * @var AttributeMetadata[]
+     */
+    public $attributes;
+
+    /**
+     * READ-ONLY.
+     * Embed properties assigned to this metadata instance.
+     *
+     * @var EmbedMetadata[]
+     */
+    public $embeds;
+
+    /**
+     * READ-ONLY.
      * Properties assigned to this metadata instance.
      *
      * @var PropertyMetadata[]
      */
     public $properties = [];
+
+    /**
+     * READ-ONLY.
+     * Relationship properties assigned to this metadata instance.
+     *
+     * @var RelationshipMetadata[]
+     */
+    public $relationships;
 
     /**
      * Adds a property to this instance.
@@ -52,18 +76,16 @@ trait PropertiesTrait
      */
     public function getAttributes()
     {
-        static $props;
-        if (null !== $props) {
-            return $props;
-        }
-        $props = [];
-        foreach ($this->getProperties() as $key => $property) {
-            if (false === $this->isAttribute($key)) {
-                continue;
+        if (null === $this->attributes) {
+            $this->attributes = [];
+            foreach ($this->getProperties() as $key => $property) {
+                if (false === $this->isAttribute($key)) {
+                    continue;
+                }
+                $this->attributes[$key] = $property;
             }
-            $props[$key] = $property;
         }
-        return $props;
+        return $this->attributes;
     }
 
     /**
@@ -73,11 +95,6 @@ trait PropertiesTrait
      */
     public function getAutocompleteAttributes()
     {
-        static $attrs;
-        if (null !== $attrs) {
-            return $attrs;
-        }
-
         $attrs = [];
         foreach ($this->getProperties() as $key => $attribute) {
             if (false === $this->isAttribute($key) && false === $attribute->hasAutocomplete()) {
@@ -96,18 +113,16 @@ trait PropertiesTrait
      */
     public function getEmbeds()
     {
-        static $props;
-        if (null !== $props) {
-            return $props;
-        }
-        $props = [];
-        foreach ($this->getProperties() as $key => $property) {
-            if (false === $this->isEmbed($key)) {
-                continue;
+        if (null === $this->embeds) {
+            $this->embeds = [];
+            foreach ($this->getProperties() as $key => $property) {
+                if (false === $this->isEmbed($key)) {
+                    continue;
+                }
+                $this->embeds[$key] = $property;
             }
-            $props[$key] = $property;
         }
-        return $props;
+        return $this->embeds;
     }
 
     /**
@@ -118,6 +133,22 @@ trait PropertiesTrait
     public function getProperties()
     {
         return $this->properties;
+    }
+
+    /**
+     * Gets the properties to serialize.
+     * Intended to be used by the using class's __sleep method.
+     *
+     * @return  array
+     */
+    public function getPropertySleepVars()
+    {
+        $props = get_object_vars($this);
+        $props = array_flip(array_keys($props));
+        unset($props['embeds']);
+        unset($props['attributes']);
+        unset($props['relationships']);
+        return array_keys($props);
     }
 
     /**
@@ -143,18 +174,16 @@ trait PropertiesTrait
      */
     public function getRelationships()
     {
-        static $props;
-        if (null !== $props) {
-            return $props;
-        }
-        $props = [];
-        foreach ($this->getProperties() as $key => $property) {
-            if (false === $this->isRelationship($key)) {
-                continue;
+        if (null === $this->relationships) {
+            $this->relationships = [];
+            foreach ($this->getProperties() as $key => $property) {
+                if (false === $this->isRelationship($key)) {
+                    continue;
+                }
+                $this->relationships[$key] = $property;
             }
-            $props[$key] = $property;
         }
-        return $props;
+        return $this->relationships;
     }
 
     /**
@@ -164,11 +193,6 @@ trait PropertiesTrait
      */
     public function getSearchProperties()
     {
-        static $props;
-        if (null !== $props) {
-            return $props;
-        }
-
         $props = [];
         foreach ($this->getProperties() as $key => $property) {
             if (false === $this->isAttribute($key) && false === $property->isSearchProperty()) {
