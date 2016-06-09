@@ -8,15 +8,8 @@ use As3\Modlr\Store\Store;
 /**
  * @author Jacob Bare <jacob.bare@gmail.com>
  */
-class Model extends AbstractModel
+class Embed extends AbstractModel
 {
-    /**
-     * The model identifier.
-     *
-     * @var string
-     */
-    private $identifier;
-
     /**
      * Constructor.
      *
@@ -27,8 +20,8 @@ class Model extends AbstractModel
      */
     public function __construct(ModelMetadataInterface $metadata, $identifier, Store $store, array $properties = null)
     {
-        $this->identifier = $identifier;
         parent::__construct($metadata, $store, $properties);
+        // $this->setLoaded();
     }
 
     /**
@@ -36,17 +29,6 @@ class Model extends AbstractModel
      */
     public function getCompositeKey()
     {
-        return sprintf('%s.%s', $this->getType(), $this->getId());
-    }
-
-    /**
-     * Gets the unique identifier of this model.
-     *
-     * @api
-     * @return  string
-     */
-    public function getId()
-    {
-        return $this->identifier;
+        return spl_object_hash($this);
     }
 }

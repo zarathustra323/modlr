@@ -2,7 +2,7 @@
 
 namespace As3\Modlr\Model\Core;
 
-use As3\Modlr\Metadata\ModelMetadata;
+use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Store\Store;
 
 /**
@@ -21,7 +21,7 @@ class Properties
     protected $converted = [];
 
     /**
-     * @var ModelMetadata
+     * @var EntityMetadata
      */
     protected $metadata;
 
@@ -61,7 +61,7 @@ class Properties
      *
      * @param   array   $original   Any original properties to apply.
      */
-    public function __construct(ModelMetadata $metadata, Store $store, array $original = null)
+    public function __construct(EntityMetadata $metadata, Store $store, array $original = null)
     {
         $this->converted = $this->original;
         $this->metadata = $metadata;
@@ -97,7 +97,7 @@ class Properties
     /**
      * Gets the metadata that represents this model's properties.
      *
-     * @return  ModelMetadata
+     * @return  EntityMetadata
      */
     public function getMetadata()
     {
@@ -122,10 +122,13 @@ class Properties
      */
     public function isCalculatedAttribute($key)
     {
-        if (null === $attrMeta = $this->metadata->getAttribute($key)) {
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
             return false;
         }
-        return $attrMeta->isCalculated();
+        if (false === $propMeta->isAttribute()) {
+            return false;
+        }
+        return $propMeta->isCalculated();
     }
 
     /**
@@ -162,28 +165,26 @@ class Properties
      * @param   string  $key
      * @return  mixed
      */
-    protected function convertValue($key)
+    private function convertValue($key)
     {
+        $propMeta = $this->metadata->getProperty($key);
+
         if (!isset($this->original[$key])) {
-            if (null !== $attrMeta = $this->metadata->getAttribute($key)) {
-                // Load the default attribute value
-                return $attrMeta->defaultValue;
+            if (true === $propMeta->isAttribute()) {
+                // Load the default attribute value.
+                return $propMeta->defaultValue;
             }
             // @todo elseif isHasMany return empty Collection; elseif isEmbedMany return empty Collection;
             return;
         }
 
-        if (null !== $attrMeta = $this->metadata->getAttribute($key)) {
+        if (true === $propMeta->isAttribute()) {
             return $this->store->convertAttributeValue($attrMeta->dataType, $this->original[$key]);
         }
-        if (null !== $relMeta = $this->metadata->getRelationship($key)) {
-            if (true === $relMeta->isOne()) {
-                // Load the proxy model.
-                return $this->store->loadProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
-            } else {
-                // Load the lazy model collection.
-            }
+        if (true === $propMeta->isRelationshipOne()) {
+            return $this->store->loadProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
         }
+        // @todo Load the lazy model collection and embeds.
     }
 
     /**
@@ -192,9 +193,9 @@ class Properties
      * @param   string  $key    The attribute key.
      * @return  mixed
      */
-    protected function getCalculatedAttrValue($key)
+    private function getCalculatedAttrValue($key)
     {
-        $attrMeta = $this->metadata->getAttribute($key);
+        $attrMeta = $this->metadata->getProperty($key);
         $class  = $attrMeta->calculated['class'];
         $method = $attrMeta->calculated['method'];
 
@@ -207,7 +208,7 @@ class Properties
      * @param   string  $key
      * @return  mixed
      */
-    protected function getOriginalValue($key)
+    private function getOriginalValue($key)
     {
         if (!isset($this->converted[$key])) {
             $this->original[$key] = $this->convertValue($key);
@@ -222,7 +223,7 @@ class Properties
      * @param   array|null  $properties     The record properties to apply.
      * @return  self
      */
-    protected function initialize(array $properties = null)
+    private function initialize(array $properties = null)
     {
         if (null === $properties) {
             return $this;
