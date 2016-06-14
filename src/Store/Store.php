@@ -27,14 +27,16 @@ use As3\Modlr\Store\Events\PreQueryArguments;
 class Store
 {
     /**
+     * Responsible for loading models.
+     *
+     * @var Loader
+     */
+    private $loader;
+
+    /**
      * @var MetadataFactory
      */
     private $mf;
-
-    /**
-     * @var TypeFactory
-     */
-    private $typeFactory;
 
     /**
      * The storage layer  manager.
@@ -45,18 +47,9 @@ class Store
     private $storageManager;
 
     /**
-     * Contains all models currently loaded in memory.
-     *
-     * @var Cache
+     * @var TypeFactory
      */
-    private $cache;
-
-    /**
-     * The event dispatcher for firing model lifecycle events.
-     *
-     * @var EventDispatcher
-     */
-    private $dispatcher;
+    private $typeFactory;
 
     /**
      * Constructor.
@@ -71,8 +64,20 @@ class Store
         $this->mf = $mf;
         $this->storageManager = $storageManager;
         $this->typeFactory = $typeFactory;
-        $this->dispatcher = $dispatcher;
-        $this->cache = new Cache();
+        $this->loader = new Loader($mf, $dispatcher);
+    }
+
+    /**
+     * Gets the model loader.
+     * INTERNAL ONLY. Do not use directly.
+     * Only for use in internal modlr code.
+     * Accessing directly can/will have unintended consequences. Use at your own risk!
+     *
+     * @return  Loader
+     */
+    public function _getLoader()
+    {
+        return $this->loader;
     }
 
     /**
@@ -86,11 +91,12 @@ class Store
      */
     public function find($typeKey, $identifier)
     {
-        if (true === $this->cache->has($typeKey, $identifier)) {
-            return $this->cache->get($typeKey, $identifier);
+        $identifier = $this->convertId($identifier);
+        if (null !== $model = $this->loader->getModelCache()->get($typeKey, $identifier)) {
+            return $model;
         }
         $record = $this->retrieveRecord($typeKey, $identifier);
-        return $this->loadModel($typeKey, $record);
+        return $this->loader->createModel($typeKey, $record, $this);
     }
 
     /**
@@ -100,7 +106,7 @@ class Store
      */
     public function getModelCache()
     {
-        return $this->cache;
+        return $this->loader->getModelCache();
     }
 
     /**
@@ -295,17 +301,15 @@ class Store
 
         $this->mf->validateResourceTypes($typeKey, $record['type']);
         // Must use the type from the record to cover polymorphic models.
-
-
         $metadata = $this->getMetadataForType($record['type']);
 
         $start = microtime(true);
         $model = new NewModel\Model($metadata, $record['identifier'], $this, $record['properties']);
-        var_dump(round(((microtime(true) - $start) * 1000), 3) . 'ms');
+        var_dump(round(((microtime(true) - $start) * 1000), 4) . 'ms');
 
         // $this->dispatchLifecycleEvent(Events::postLoad, $model);
 
-        // $this->cache->push($model);
+        $this->cache->push($model);
 
         return $model;
     }

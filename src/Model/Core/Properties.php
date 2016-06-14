@@ -192,6 +192,17 @@ class Properties
     }
 
     /**
+     * Reinitializes the model properties from a persistence layer record.
+     *
+     * @param   array   $properties
+     * @return  self
+     */
+    public function reinitialize(array $properties)
+    {
+        return $this->initialize($properties);
+    }
+
+    /**
      * Flags a property for removal.
      *
      * @param   string  $key    The property key.
@@ -227,6 +238,7 @@ class Properties
      */
     private function convertValue($key)
     {
+        $loader = $this->store->_getLoader();
         $propMeta = $this->metadata->getProperty($key);
 
         if (true === $propMeta->isRelationshipMany() && true === $propMeta->isInverse()) {
@@ -240,7 +252,7 @@ class Properties
             }
             if (true === $propMeta->isRelationshipMany()) {
                 // Create empty relationship-many collection.
-                return $this->createCollection($propMeta, []);
+                return $loader->createModelCollection($propMeta, [], $this->store);
             }
             // @todo elseif isEmbedMany return empty Collection;
             return;
@@ -250,67 +262,15 @@ class Properties
             return $this->store->convertAttributeValue($propMeta->dataType, $this->original[$key]);
         }
         if (true === $propMeta->isRelationshipOne()) {
-            return $this->createProxyModel($this->original[$key]['type'], $this->original[$key]['id']);
+            return $loader->createProxyModel($this->original[$key]['type'], $this->original[$key]['id'], $this->store);
         }
         if (true === $propMeta->isRelationshipMany()) {
-            return $this->createCollection($propMeta, (Array) $this->original[$key]);
+            return $loader->createModelCollection($propMeta, (Array) $this->original[$key], $this->store);
         }
         if (true === $propMeta->isEmbedOne()) {
-            return $this->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original[$key]);
+            return $loader->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original[$key], $this->store);
         }
         // @todo Load the lazy model collection and embeds.
-    }
-
-    /**
-     * Loads a relationship-many model collection.
-     *
-     * @param   RelationshipMetadata    $relMeta
-     * @param   array                   $references
-     * @return  Collections\Collection
-     */
-    private function createCollection(RelationshipMetadata $relMeta, array $references)
-    {
-        $metadata = $this->store->getMetadataForType($relMeta->getModelType());
-
-        $models = [];
-        foreach ($references as $ref) {
-            if (!isset($ref['id']) || !isset($ref['type'])) {
-                continue;
-            }
-            $models[] = $this->createProxyModel($ref['type'], $ref['id']);
-        }
-        return new Collections\Collection($metadata, $this->store, $models, count($models));
-    }
-
-    /**
-     * Creates an Embed model.
-     *
-     * @param   EmbedMetadata   $embedMeta
-     * @param   array           $data
-     * @return  Embed
-     */
-    private function createEmbedModel(EmbedMetadata $embedMeta, array $data)
-    {
-        return new Embed($embedMeta, $this->store, $data);
-    }
-
-    /**
-     * Creates a proxy Model.
-     * If the Model is already loaded in-memory, will use that instance instead.
-     *
-     * @return  Model
-     */
-    private function createProxyModel($modelType, $identifier)
-    {
-        $identifier = $this->store->convertId($identifier);
-        $cache = $this->store->getModelCache();
-        if (true === $cache->has($modelType, $identifier)) {
-            return $cache->get($modelType, $identifier);
-        }
-        $metadata = $this->store->getMetadataForType($modelType);
-        $model = new Model($metadata, $identifier, $this->store);
-        $cache->push($model);
-        return $model;
     }
 
     /**
@@ -351,10 +311,9 @@ class Properties
      */
     private function initialize(array $properties = null)
     {
-        if (null === $properties || true === $this->areNew()) {
+        if (true === $this->areNew() || null === $properties) {
             return $this;
         }
-
         foreach ($properties as $key => $value) {
             $this->original[$key] = $value;
         }

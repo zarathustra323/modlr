@@ -284,6 +284,7 @@ abstract class AbstractModel
     /**
      * Gets the core model properties.
      * This should only be used by the internals of Modlr, and not by the end user.
+     * Accessing/modifying in userland code will cause stability problems. Do not use.
      *
      * @return  Properties
      */
