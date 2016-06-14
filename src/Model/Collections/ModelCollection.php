@@ -60,7 +60,6 @@ class ModelCollection extends AbstractCollection
     /**
      * Loads the collection from the persistence layer, if necessary.
      *
-     * @abstract
      * @param   bool    $force
      * @return  self
      */
@@ -70,11 +69,16 @@ class ModelCollection extends AbstractCollection
             return $this;
         }
 
+        $this->loaded = true;
         $identifiers = $this->getIdentifiers();
+        if (empty($identifiers)) {
+            return $this;
+        }
+
         $records = $this->store->retrieveRecords($this->getType(), $identifiers);
         $models = $this->store->_getLoader()->createModels($this->getType(), $records, $this->store);
         $this->setModels($models);
-        $this->loaded = true;
+
         return $this;
     }
 
@@ -92,7 +96,6 @@ class ModelCollection extends AbstractCollection
                 $identifiers[] = $model->getId();
             }
         }
-
         return $identifiers;
     }
 
