@@ -4,6 +4,7 @@ namespace As3\Modlr\Model\Core;
 
 use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
+use As3\Modlr\Metadata\Properties\PropertyMetadata;
 use As3\Modlr\Metadata\Properties\RelationshipMetadata;
 use As3\Modlr\Model\Embed;
 use As3\Modlr\Model\Model;
@@ -137,21 +138,27 @@ class Properties
      */
     public function get($key)
     {
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
+            return;
+        }
         if (true === $this->isCalculatedAttribute($key)) {
             // Calculated attribute. Retrieve the appropriate value.
             // Must always run in case the model's values change.
             return $this->getCalculatedAttrValue($key);
         }
         if (isset($this->remove[$key])) {
-            // The value is marked for removal.
-            // @todo This should still return an empty collection for hasMany items.
+            // Ensures the default/converted values are still returned for the specified types.
+            $useDefaults = ['attribute' => true, 'relationship-many' => true, 'embed-many' => true];
+            if (isset($useDefaults[$propMeta->getType()])) {
+                return $this->getOriginalValue($propMeta);
+            }
             return;
         }
         if (isset($this->modified[$key])) {
             // The value was modified since loading from the persistence layer.
             return $this->modified[$key];
         }
-        return $this->getOriginalValue($key);
+        return $this->getOriginalValue($propMeta);
     }
 
     /**
@@ -233,33 +240,20 @@ class Properties
     /**
      * Converts a raw property value to an internal value.
      *
-     * @param   string  $key
+     * @param   PropertyMetadata    $propMeta
      * @return  mixed
      */
-    private function convertValue($key)
+    private function convertValue(PropertyMetadata $propMeta)
     {
+        $key = $propMeta->getKey();
         $loader = $this->store->_getLoader();
-        $propMeta = $this->metadata->getProperty($key);
 
         if (true === $propMeta->isRelationshipMany() && true === $propMeta->isInverse()) {
             throw new \BadMethodCallException('Inverse relationship loading is not yet implemented.');
         }
 
         if (!isset($this->original[$key])) {
-            if (true === $propMeta->isAttribute()) {
-                // Load the default attribute value.
-                return $propMeta->defaultValue;
-            }
-            if (true === $propMeta->isRelationshipMany()) {
-                // Create empty relationship-many collection.
-                return $loader->createModelCollection($propMeta, [], $this->store);
-            }
-            if (true === $propMeta->isEmbedMany()) {
-                // Create empty embed-many collection.
-                return $loader->createEmbedCollection($propMeta, [], $this->store);
-            }
-            // @todo elseif isEmbedMany return empty Collection;
-            return;
+            return $this->getDefaultValue($propMeta);
         }
 
         if (true === $propMeta->isAttribute()) {
@@ -295,15 +289,38 @@ class Properties
     }
 
     /**
-     * Gets an original property value.
+     * Gets the default value for a property.
      *
-     * @param   string  $key
+     * @param   PropertyMetadata    $propMeta
      * @return  mixed
      */
-    private function getOriginalValue($key)
+    private function getDefaultValue(PropertyMetadata $propMeta)
     {
+        if (true === $propMeta->isAttribute()) {
+            // Load the default attribute value.
+            return $propMeta->defaultValue;
+        }
+        if (true === $propMeta->isRelationshipMany()) {
+            // Create empty relationship-many collection.
+            return $loader->createModelCollection($propMeta, [], $this->store);
+        }
+        if (true === $propMeta->isEmbedMany()) {
+            // Create empty embed-many collection.
+            return $loader->createEmbedCollection($propMeta, [], $this->store);
+        }
+    }
+
+    /**
+     * Gets an original property value.
+     *
+     * @param   PropertyMetadata    $propMeta
+     * @return  mixed
+     */
+    private function getOriginalValue(PropertyMetadata $propMeta)
+    {
+        $key = $propMeta->getKey();
         if (!isset($this->converted[$key])) {
-            $this->original[$key] = $this->convertValue($key);
+            $this->original[$key] = $this->convertValue($propMeta);
             $this->converted[$key] = true;
         }
         return $this->original[$key];

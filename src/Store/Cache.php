@@ -105,9 +105,8 @@ class Cache
      */
     public function get($typeKey, $identifier)
     {
-        $map = $this->getAllForType($typeKey);
-        if (isset($map[$identifier])) {
-            return $map[$identifier];
+        if (isset($this->models[$typeKey][$identifier])) {
+            return $this->models[$typeKey][$identifier];
         }
         return null;
     }
