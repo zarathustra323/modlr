@@ -5,6 +5,7 @@ namespace As3\Modlr\Store;
 use As3\Modlr\Events\EventDispatcher;
 use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\MetadataFactory;
+use As3\Modlr\Metadata\Properties\EmbeddedMetadata;
 use As3\Modlr\Metadata\Properties\RelationshipMetadata;
 use As3\Modlr\Model\Collections;
 use As3\Modlr\Model\Embed;
@@ -46,25 +47,23 @@ class Loader
     }
 
     /**
-     * Loads a relationship-many model collection.
+     * Loads a has-many embed collection.
      *
-     * @param   RelationshipMetadata    $relMeta
-     * @param   array                   $references
-     * @param   Store                   $store
-     * @return  Collections\Collection
+     * @param   EmbeddedMetadata    $embeddedMeta
+     * @param   array|null          $embedDocs
+     * @param   Store               $store
+     * @return  Collections\EmbedCollection
      */
-    public function createModelCollection(RelationshipMetadata $relMeta, array $references, Store $store)
+    public function createEmbedCollection(EmbeddedMetadata $embeddedMeta, array $embedDocs = null, Store $store)
     {
-        $metadata = $this->mf->getMetadataForType($relMeta->getModelType());
+        $metadata = $embeddedMeta->getEmbedMetadata();
+        $embedDocs = $embedDocs ?: [];
 
-        $identifiers = [];
-        foreach ($references as $ref) {
-            if (!isset($ref['id'])) {
-                continue;
-            }
-            $identifiers[] = $ref['id'];
+        $embeds = [];
+        foreach ($embedDocs as $embedDoc) {
+            $embeds[] = $this->createEmbedModel($metadata, (array) $embedDoc, $store);
         }
-        return new Collections\ModelCollection($metadata, $store, $identifiers, count($identifiers));
+        return new Collections\EmbedCollection($metadata, $store, $embeds);
     }
 
     /**
@@ -73,11 +72,12 @@ class Loader
      * @param   EmbedMetadata   $embedMeta
      * @param   array           $data
      * @param   Store           $store
+     * @param   bool            $new
      * @return  Embed
      */
-    public function createEmbedModel(EmbedMetadata $embedMeta, array $data, Store $store)
+    public function createEmbedModel(EmbedMetadata $embedMeta, array $data, Store $store, $new = false)
     {
-        return new Embed($embedMeta, $store, $data);
+        return new Embed($embedMeta, $store, $data, (boolean) $new);
     }
 
     /**
@@ -121,12 +121,35 @@ class Loader
                 if (false === $model->isLoaded()) {
                     // Reinitialize the model with the record.
                     $model->_getProperties()->reinitialize($record['properties']);
+                    // @todo Fire lifecycle event here.
                 }
             } else {
                 $model = $this->createModel($typeKey, $record, $store);
             }
         }
         return $models;
+    }
+
+    /**
+     * Loads a relationship-many model collection.
+     *
+     * @param   RelationshipMetadata    $relMeta
+     * @param   array                   $references
+     * @param   Store                   $store
+     * @return  Collections\Collection
+     */
+    public function createModelCollection(RelationshipMetadata $relMeta, array $references, Store $store)
+    {
+        $metadata = $this->mf->getMetadataForType($relMeta->getModelType());
+
+        $identifiers = [];
+        foreach ($references as $ref) {
+            if (!isset($ref['id'])) {
+                continue;
+            }
+            $identifiers[] = $ref['id'];
+        }
+        return new Collections\ModelCollection($metadata, $store, $identifiers, count($identifiers));
     }
 
     /**

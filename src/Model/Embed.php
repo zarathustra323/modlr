@@ -14,12 +14,11 @@ class Embed extends AbstractModel
      * Constructor.
      *
      * @param   ModelMetadataInterface  $metadata
-     * @param   string                  $identifier
      * @param   Store                   $store
      * @param   array|null              $properties
      * @param   bool                    $new
      */
-    public function __construct(ModelMetadataInterface $metadata, $identifier, Store $store, array $properties = null, $new = false)
+    public function __construct(ModelMetadataInterface $metadata, Store $store, array $properties = null, $new = false)
     {
         $properties = (array) $properties; // Will ensure that embeds are always flagged as loaded.
         parent::__construct($metadata, $store, $properties, $new);

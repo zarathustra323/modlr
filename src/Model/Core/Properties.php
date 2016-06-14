@@ -254,6 +254,10 @@ class Properties
                 // Create empty relationship-many collection.
                 return $loader->createModelCollection($propMeta, [], $this->store);
             }
+            if (true === $propMeta->isEmbedMany()) {
+                // Create empty embed-many collection.
+                return $loader->createEmbedCollection($propMeta, [], $this->store);
+            }
             // @todo elseif isEmbedMany return empty Collection;
             return;
         }
@@ -265,12 +269,14 @@ class Properties
             return $loader->createProxyModel($this->original[$key]['type'], $this->original[$key]['id'], $this->store);
         }
         if (true === $propMeta->isRelationshipMany()) {
-            return $loader->createModelCollection($propMeta, (Array) $this->original[$key], $this->store);
+            return $loader->createModelCollection($propMeta, (array) $this->original[$key], $this->store);
         }
         if (true === $propMeta->isEmbedOne()) {
-            return $loader->createEmbedModel($propMeta->getEmbedMetadata(), (Array) $this->original[$key], $this->store);
+            return $loader->createEmbedModel($propMeta->getEmbedMetadata(), (array) $this->original[$key], $this->store);
         }
-        // @todo Load the lazy model collection and embeds.
+        if (true === $propMeta->isEmbedMany()) {
+            return $loader->createEmbedCollection($propMeta, (array) $this->original[$key], $this->store);
+        }
     }
 
     /**
