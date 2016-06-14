@@ -86,6 +86,20 @@ class Properties
     }
 
     /**
+     * Supresses the metadata and store properties when using var_dump.
+     *
+     * @return  array
+     */
+    public function __debugInfo()
+    {
+        $vars = get_object_vars($this);
+        foreach (['metadata', 'store'] as $key) {
+            $vars[$key] = sprintf('(Dump class %s directly to view)', get_class($vars[$key]));
+        }
+        return $vars;
+    }
+
+    /**
      * Determines if any of the properties are dirty.
      *
      * @return  bool
@@ -113,20 +127,6 @@ class Properties
     public function areNew()
     {
         return $this->state['new'];
-    }
-
-    /**
-     * Supresses the metadata and store properties when using var_dump.
-     *
-     * @return  array
-     */
-    public function __debugInfo()
-    {
-        $vars = get_object_vars($this);
-        foreach (['metadata', 'store'] as $key) {
-            $vars[$key] = sprintf('(Dump class %s directly to view)', get_class($vars[$key]));
-        }
-        return $vars;
     }
 
     /**
