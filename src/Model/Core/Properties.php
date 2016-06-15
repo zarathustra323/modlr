@@ -238,6 +238,31 @@ class Properties
     }
 
     /**
+     * Sets a new value to an property.
+     *
+     * @param   string  $key    The property key.
+     * @param   mixed   $value  The value to set.
+     * @return  self
+     */
+    public function set($key, $value)
+    {
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
+            return $this;
+        }
+        if (true === $propMeta->isAttribute()) {
+            return $this->setAttribute($propMeta, $value);
+        }
+
+        if (true === $propMeta->isRelationship()) {
+            return $this->setRelationship($propMeta, $value);
+        }
+
+        if (true === $propMeta->isEmbed()) {
+            return $this->setEmbed($propMeta, $value);
+        }
+    }
+
+    /**
      * Converts a raw property value to an internal value.
      *
      * @param   PropertyMetadata    $propMeta
@@ -341,6 +366,16 @@ class Properties
             $this->original[$key] = $value;
         }
         $this->setStateLoaded();
+    }
+
+    private function setAttribute(PropertyMetadata $propMeta, $value)
+    {
+        if (true === $this->isCalculatedAttribute($propMeta->getKey())) {
+            return $this;
+        }
+        $value = (null === $value) ? $propMeta->getDefaultValue() : $this->store->convertAttributeValue($propMeta->dataType, $value);
+
+
     }
 
     /**

@@ -40,21 +40,6 @@ abstract class AbstractModel
     }
 
     /**
-     * Clears a model property value.
-     * For an attribute, will set the value to null.
-     * For collections, will clear the collection contents.
-     *
-     * @api
-     * @param   string  $key    The property key.
-     * @return  self
-     */
-    public function clear($key)
-    {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
-    }
-
-    /**
      * Marks the record for deletion.
      * Will not remove from the database until $this->save() is called.
      *
@@ -266,7 +251,8 @@ abstract class AbstractModel
      */
     public function set($key, $value)
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $this->touch();
+        $this->properties->set($key, $value);
         return $this;
     }
 
