@@ -4,6 +4,7 @@ namespace As3\Modlr\Model\Core;
 
 use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
+use As3\Modlr\Metadata\Properties\AttributeMetadata;
 use As3\Modlr\Metadata\Properties\PropertyMetadata;
 use As3\Modlr\Metadata\Properties\RelationshipMetadata;
 use As3\Modlr\Model\Embed;
@@ -148,7 +149,7 @@ class Properties
         }
         if (isset($this->remove[$key])) {
             // Ensures the default/converted values are still returned for the specified types.
-            $useDefaults = ['attribute' => true, 'relationship-many' => true, 'embed-many' => true];
+            $useDefaults = ['relationship-many' => true, 'embed-many' => true];
             if (isset($useDefaults[$propMeta->getType()])) {
                 return $this->getOriginalValue($propMeta);
             }
@@ -368,14 +369,54 @@ class Properties
         $this->setStateLoaded();
     }
 
-    private function setAttribute(PropertyMetadata $propMeta, $value)
+    /**
+     * Sets an attribute value.
+     *
+     * @todo    Add caclulated attribute setting.
+     * @param   AttributeMetadata   $attrMeta
+     * @param   mixed               $value
+     * @return  self
+     */
+    private function setAttribute(AttributeMetadata $attrMeta, $value)
     {
-        if (true === $this->isCalculatedAttribute($propMeta->getKey())) {
+        if (true === $attrMeta->isCalculated()) {
+            // @todo Add support for calculated attribute setting.
             return $this;
         }
-        $value = (null === $value) ? $propMeta->getDefaultValue() : $this->store->convertAttributeValue($propMeta->dataType, $value);
+        $key = $attrMeta->getKey();
+        // Clear any existing attribute state.
+        if (isset($this->remove[$key])) {
+            unset($this->remove[$key]);
+        }
+        if (isset($this->modified[$key])) {
+            unset($this->modified[$key]);
+        }
 
+        // Convert the incoming value.
+        $current = $this->store->convertAttributeValue($attrMeta->dataType, $value);
+        if (null === $current) {
+            // Fill with the default value.
+            $current = $attrMeta->defaultValue;
+        }
 
+        // Compare the current and original values.
+        $original = $this->getOriginalValue($attrMeta);
+        if ('date' === $attrMeta->dataType) {
+            // Dates need to compare timestamps (due to potential localization differences).
+            if ($current->getTimestamp() === $original->getTimestamp()) {
+                return $this;
+            }
+        } else if ($current === $original) {
+            // No change.
+            return $this;
+        }
+        // Change detected.
+        if (null === $current) {
+            $this->remove[$key] = true;
+            return $this;
+        }
+        $this->modified[$key] = $current;
+        return $this;
     }
 
     /**
@@ -408,33 +449,6 @@ class Properties
     // ********
 
 
-
-    /**
-     * Sets a new value to an property.
-     *
-     * @param   string  $key    The property key.
-     * @param   mixed   $value  The value to set.
-     * @return  mixed
-     */
-    public function set($key, $value)
-    {
-        if (null === $value) {
-            return $this->remove($key);
-        }
-        $this->clearRemoval($key);
-
-        $original = $this->getOriginal($key);
-        if ($value === $original) {
-            $this->clearChange($key);
-        } else {
-            if (($value instanceof \DateTime && $original instanceof \DateTime) && ($value->getTimestamp() === $original->getTimestamp())) {
-                $this->clearChange($key);
-            } else {
-                $this->current[$key] = $value;
-            }
-        }
-        return $this;
-    }
 
     /**
      * Replaces the current properties with new ones.
