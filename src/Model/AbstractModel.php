@@ -40,6 +40,21 @@ abstract class AbstractModel
     }
 
     /**
+     * Clears a property value.
+     * For an attributes or has-ones, will set the value to null.
+     * For collections, will clear the collection contents.
+     *
+     * @api
+     * @param   string  $key    The property key.
+     * @return  self
+     */
+    public function clear($key)
+    {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        return $this->properties->clear($key);
+    }
+
+    /**
      * Marks the record for deletion.
      * Will not remove from the database until $this->save() is called.
      *
@@ -50,23 +65,23 @@ abstract class AbstractModel
     public function delete()
     {
         if (true === $this->getMetadata()->isEmbedded()) {
+            // @todo Should this actually remove the embed completely?
             return $this;
         }
         if (true === $this->isNew()) {
-            throw new \UnexpectedValueException('You cannot delete a new model');
+            throw new \UnexpectedValueException('You cannot delete a new model.');
         }
         $this->deleted = true;
         return $this;
     }
 
     /**
-     * Gets a model property.
+     * Gets the value of model property.
      * Returns null if the property does not exist on the model or is not set.
      *
      * @api
-     * @todo    Update the return annotation once new collections have been defined.
      * @param   string  $key    The property field key.
-     * @return  Model|Model[]|Embed|Collections\EmbedCollection|null|mixed
+     * @return  Model|Embed|Collections\ModelCollection|Collections\EmbedCollection|null|mixed
      */
     public function get($key)
     {
@@ -175,16 +190,16 @@ abstract class AbstractModel
     }
 
     /**
-     * Pushes a Model into a has-many relationship collection.
-     * This method must be used for has-many relationships. Direct set is not supported.
-     * To completely replace a has-many, call clear() first and then push() the new Models.
+     * Pushes a Model into a has-many collection.
+     * This method must be used for collections. Direct set is not supported.
+     * To completely replace a has-many, call clear() first and then push() the new models.
      *
      * @api
-     * @param   string  $key
-     * @param   Model   $model
+     * @param   string          $key
+     * @param   AbstractModel   $model
      * @return  self
      */
-    public function push($key, Model $model)
+    public function push($key, AbstractModel $model)
     {
         throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         return $this;
@@ -203,14 +218,14 @@ abstract class AbstractModel
     }
 
     /**
-     * Removes a specific Model from a has-many relationship collection.
+     * Removes a specific model from a has-many collection.
      *
      * @api
-     * @param   string  $key    The has-many relationship key.
-     * @param   Model   $model  The model to remove from the collection.
+     * @param   string          $key    The has-many property key.
+     * @param   AbstractModel   $model  The model to remove from the collection.
      * @return  self
      */
-    public function remove($key, Model $model)
+    public function remove($key, AbstractModel $model)
     {
         throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         return $this;
