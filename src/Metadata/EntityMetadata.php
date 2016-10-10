@@ -145,7 +145,6 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
      * Gets the parent model type.
      * For models that are extended.
      *
-     * @deprecated
      * @return  string|null
      */
     public function getParentModelType()
@@ -217,7 +216,7 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
      */
     public function merge(Interfaces\MergeableInterface $metadata)
     {
-        if (!$metadata instanceof ModelMetadata) {
+        if (!$metadata instanceof EntityMetadata) {
             throw new MetadataException('Unable to merge metadata. The provided metadata instance is not compatible.');
         }
 
@@ -228,7 +227,9 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
         $this->ownedTypes = $metadata->ownedTypes;
         $this->defaultValues = array_merge($this->defaultValues, $metadata->defaultValues);
 
-        $this->persistence->merge($metadata->persistence);
+        if ($this->persistence instanceof Interfaces\StorageLayerInterface && $metadata->persistence instanceof Interfaces\StorageLayerInterface) {
+            $this->persistence->merge($metadata->persistence);
+        }
 
         if ($this->search instanceof Interfaces\StorageLayerInterface && $metadata->search instanceof Interfaces\StorageLayerInterface) {
             $this->search->merge($metadata->search);
