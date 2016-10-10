@@ -148,6 +148,7 @@ class Properties
             return $this->getCalculatedAttrValue($key);
         }
         if (isset($this->remove[$key])) {
+            // @todo Vet that this is needed... Could causes problems as the collections would not be the same if add/remove called multiple times.
             // Ensures the default/converted values are still returned for the specified types.
             $useDefaults = ['relationship-many' => true, 'embed-many' => true];
             if (isset($useDefaults[$propMeta->getType()])) {
@@ -211,18 +212,20 @@ class Properties
     }
 
     /**
-     * Flags a property for removal.
+     * Removes a model from a collection
      *
-     * @param   string  $key    The property key.
+     * @param   string          $key    The property key.
+     * @param   AbstractModel   $model  The model to remove.
      * @return  self
      */
-    public function remove($key)
+    public function remove($key, AbstractModel $model)
     {
-        $this->remove[$key] = true;
-        if (isset($this->modified[$key])) {
-            unset($this->modified[$key]);
-        }
-        return $this;
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        // $this->remove[$key] = true;
+        // if (isset($this->modified[$key])) {
+        //     unset($this->modified[$key]);
+        // }
+        // return $this;
     }
 
     /**
@@ -239,7 +242,7 @@ class Properties
     }
 
     /**
-     * Sets a new value to an property.
+     * Sets a new value to a property.
      *
      * @param   string  $key    The property key.
      * @param   mixed   $value  The value to set.
@@ -261,6 +264,23 @@ class Properties
         if (true === $propMeta->isEmbed()) {
             return $this->setEmbed($propMeta, $value);
         }
+    }
+
+    /**
+     * Clears any existing property state for the provided key.
+     *
+     * @param   string  $key
+     * @return  self
+     */
+    private function clearPropertyStateFor($key)
+    {
+        if (isset($this->remove[$key])) {
+            unset($this->remove[$key]);
+        }
+        if (isset($this->modified[$key])) {
+            unset($this->modified[$key]);
+        }
+        return $this;
     }
 
     /**
@@ -385,12 +405,7 @@ class Properties
         }
         $key = $attrMeta->getKey();
         // Clear any existing attribute state.
-        if (isset($this->remove[$key])) {
-            unset($this->remove[$key]);
-        }
-        if (isset($this->modified[$key])) {
-            unset($this->modified[$key]);
-        }
+        $this->clearPropertyStateFor($key);
 
         // Convert the incoming value.
         $current = $this->store->convertAttributeValue($attrMeta->dataType, $value);
@@ -416,6 +431,41 @@ class Properties
             return $this;
         }
         $this->modified[$key] = $current;
+        return $this;
+    }
+
+    /**
+     * Sets a relationship value.
+     *
+     * @param   RelationshipMetadata    $relMeta
+     * @param   Model|null              $current
+     * @return  self
+     */
+    private function setRelationship(RelationshipMetadata $relMeta, Model $current = null)
+    {
+        if (true === $relMeta->isMany()) {
+            throw new \RuntimeException('You cannot directly set a has-many relationship. Use `push,` `clear` and/or `remove` instead.');
+        }
+
+        $key = $relMeta->getKey();
+        // Clear any existing relationship state.
+        $this->clearPropertyStateFor($key);
+
+        $original = $this->getOriginalValue($relMeta);
+        if (null === $current) {
+            if (null !== $original) {
+                $this->remove[$key] = true;
+            }
+            return $this;
+        }
+
+        // Validate that this relationship can add the provided model.
+        $metadata = $this->store->getMetadataForType($relMeta->getModelType());
+        $this->store->validateRelationshipSet($metadata, $current->getType());
+
+        if (null === $original || $current->getId() !== $original->getId()) {
+            $this->modified[$key] = $current;
+        }
         return $this;
     }
 
