@@ -108,6 +108,17 @@ class Properties
      */
     public function areDirty()
     {
+        foreach ($this->converted as $key => $value) {
+            $propMeta = $this->metadata->getProperty($key);
+            if (false === $propMeta->isEmbedOne()) {
+                continue;
+            }
+
+            $embed = $this->getOriginalValue($propMeta);
+            if (null !== $embed && true === $embed->isDirty()) {
+                return true;
+            }
+        }
         return !empty($this->modified) || !empty($this->remove);
     }
 
