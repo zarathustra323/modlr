@@ -14,7 +14,7 @@ interface MetadataFactoryInterface
      *
      * @param   string              $type
      * @return  EntityMetadata
-     * @throws  \Zarathustra\Modlr\RestOdm\Exception\MetadataException  If metadata was not found.
+     * @throws  \As3\Modlr\Exception\MetadataException  If metadata was not found.
      */
     public function getMetadataForType($type);
 
