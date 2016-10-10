@@ -229,7 +229,10 @@ class EntityMetadata implements Interfaces\MergeableInterface, Interfaces\ModelM
         $this->defaultValues = array_merge($this->defaultValues, $metadata->defaultValues);
 
         $this->persistence->merge($metadata->persistence);
-        $this->search->merge($metadata->search);
+
+        if ($this->search instanceof Interfaces\StorageLayerInterface && $metadata->search instanceof Interfaces\StorageLayerInterface) {
+            $this->search->merge($metadata->search);
+        }
 
         $this->mergeProperties($metadata->getProperties());
         $this->mergeMixins($metadata->getMixins());

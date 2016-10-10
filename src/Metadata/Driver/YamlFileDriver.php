@@ -85,6 +85,7 @@ final class YamlFileDriver extends AbstractFileDriver
         $mixin = new Metadata\MixinMetadata($mixinName);
 
         $this->setAttributes($mixin, $mapping['attributes']);
+        $this->setEmbeds($mixin, $mapping['embeds']);
         $this->setRelationships($mixin, $mapping['relationships']);
         $this->setEmbeds($mixin, $mapping['embeds']);
         return $mixin;
