@@ -5,6 +5,7 @@ namespace As3\Modlr\Model\Core;
 use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
 use As3\Modlr\Metadata\Properties\AttributeMetadata;
+use As3\Modlr\Metadata\Properties\EmbeddedMetadata;
 use As3\Modlr\Metadata\Properties\PropertyMetadata;
 use As3\Modlr\Metadata\Properties\RelationshipMetadata;
 use As3\Modlr\Model\Embed;
@@ -20,21 +21,13 @@ use As3\Modlr\Store\Store;
 class Properties
 {
     /**
-     * Properties that have been converted to internal values.
-     * Stored as $propKey => true.
-     *
-     * @var array
-     */
-    protected $converted = [];
-
-    /**
      * @var ModelMetadataInterface
      */
     protected $metadata;
 
     /**
      * Modified property values.
-     * Will only contain internally converted values.
+     * Will only contain internally touched/converted values.
      * Stored as $propKey => $propValue.
      *
      * @var array
@@ -43,7 +36,7 @@ class Properties
 
     /**
      * Original property values.
-     * Can be a mix of original, persistence layer values or internally converted values.
+     * Can be a mix of original, persistence layer values or internally touched values.
      * Stored as $propKey => $propValue.
      *
      * @var array
@@ -74,6 +67,14 @@ class Properties
     protected $store;
 
     /**
+     * Properties that have been touched and converted to internal values.
+     * Stored as $propKey => true.
+     *
+     * @var array
+     */
+    protected $touched = [];
+
+    /**
      * Constructor.
      *
      * @param   array   $original   Any original properties to apply.
@@ -81,7 +82,7 @@ class Properties
     public function __construct(ModelMetadataInterface $metadata, Store $store, array $original = null, $new = false)
     {
         $this->setStateNew($new);
-        $this->converted = $this->original;
+        $this->touched = $this->original;
         $this->metadata = $metadata;
         $this->store = $store;
         $this->initialize($original);
@@ -108,7 +109,13 @@ class Properties
      */
     public function areDirty()
     {
-        foreach ($this->converted as $key => $value) {
+        if (true === $this->areNew()) {
+            return true;
+        }
+        if (!empty($this->modified) || !empty($this->remove)) {
+            return true;
+        }
+        foreach ($this->touched as $key => $value) {
             $propMeta = $this->metadata->getProperty($key);
             if (false === $propMeta->isEmbedOne()) {
                 continue;
@@ -119,7 +126,7 @@ class Properties
                 return true;
             }
         }
-        return !empty($this->modified) || !empty($this->remove);
+        return false;
     }
 
     /**
@@ -140,6 +147,22 @@ class Properties
     public function areNew()
     {
         return $this->state['new'];
+    }
+
+    /**
+     * Creates a new Embed model instance for the provided property key.
+     *
+     * @param   string  $key
+     * @return  Embed
+     * @throws  \RuntimeException
+     */
+    public function createEmbedFor($key)
+    {
+        $propMeta = $this->metadata->getProperty($key);
+        if (null === $propMeta || false === $propMeta->isEmbed()) {
+            throw new \RuntimeException(sprintf('Unable to create an Embed instance for property key "%s" - the property is not an embed.', $key));
+        }
+        return $this->getLoader()->createEmbedModel($propMeta->getEmbedMetadata(), [], $this->store, true);
     }
 
     /**
@@ -241,7 +264,7 @@ class Properties
 
     /**
      * Rolls back the properties to their original state.
-     * Preserves previously converted original values.
+     * Preserves previously touched, original values.
      *
      * @return  self
      */
@@ -303,7 +326,6 @@ class Properties
     private function convertValue(PropertyMetadata $propMeta)
     {
         $key = $propMeta->getKey();
-        $loader = $this->store->_getLoader();
 
         if (true === $propMeta->isRelationshipMany() && true === $propMeta->isInverse()) {
             throw new \BadMethodCallException('Inverse relationship loading is not yet implemented.');
@@ -317,16 +339,16 @@ class Properties
             return $this->store->convertAttributeValue($propMeta->dataType, $this->original[$key]);
         }
         if (true === $propMeta->isRelationshipOne()) {
-            return $loader->createProxyModel($this->original[$key]['type'], $this->original[$key]['id'], $this->store);
+            return $this->getLoader()->createProxyModel($this->original[$key]['type'], $this->original[$key]['id'], $this->store);
         }
         if (true === $propMeta->isRelationshipMany()) {
-            return $loader->createModelCollection($propMeta, (array) $this->original[$key], $this->store);
+            return $this->getLoader()->createModelCollection($propMeta, (array) $this->original[$key], $this->store);
         }
         if (true === $propMeta->isEmbedOne()) {
-            return $loader->createEmbedModel($propMeta->getEmbedMetadata(), (array) $this->original[$key], $this->store);
+            return $this->getLoader()->createEmbedModel($propMeta->getEmbedMetadata(), (array) $this->original[$key], $this->store);
         }
         if (true === $propMeta->isEmbedMany()) {
-            return $loader->createEmbedCollection($propMeta, (array) $this->original[$key], $this->store);
+            return $this->getLoader()->createEmbedCollection($propMeta, (array) $this->original[$key], $this->store);
         }
     }
 
@@ -359,12 +381,17 @@ class Properties
         }
         if (true === $propMeta->isRelationshipMany()) {
             // Create empty relationship-many collection.
-            return $loader->createModelCollection($propMeta, [], $this->store);
+            return $this->getLoader()->createModelCollection($propMeta, [], $this->store);
         }
         if (true === $propMeta->isEmbedMany()) {
             // Create empty embed-many collection.
-            return $loader->createEmbedCollection($propMeta, [], $this->store);
+            return $this->getLoader()->createEmbedCollection($propMeta, [], $this->store);
         }
+    }
+
+    private function getLoader()
+    {
+        return $this->store->_getLoader();
     }
 
     /**
@@ -376,9 +403,9 @@ class Properties
     private function getOriginalValue(PropertyMetadata $propMeta)
     {
         $key = $propMeta->getKey();
-        if (!isset($this->converted[$key])) {
+        if (!isset($this->touched[$key])) {
             $this->original[$key] = $this->convertValue($propMeta);
-            $this->converted[$key] = true;
+            $this->touched[$key] = true;
         }
         return $this->original[$key];
     }
@@ -442,6 +469,40 @@ class Properties
             return $this;
         }
         $this->modified[$key] = $current;
+        return $this;
+    }
+
+    /**
+     * Sets an embed value.
+     *
+     * @param   EmbeddedMetadata    $embedMeta
+     * @param   Embed|null          $current
+     * @return  self
+     */
+    private function setEmbed(EmbeddedMetadata $embedMeta, Embed $current = null)
+    {
+        if (true === $embedMeta->isMany()) {
+            throw new \RuntimeException('You cannot directly set a has-many embed. Use `push,` `clear` and/or `remove` instead.');
+        }
+
+        $key = $embedMeta->getKey();
+        // Clear any existing relationship state.
+        $this->clearPropertyStateFor($key);
+
+        $original = $this->getOriginalValue($embedMeta);
+        if (null === $current) {
+            if (null !== $original) {
+                $this->remove[$key] = true;
+            }
+            return $this;
+        }
+
+        // Validate that this embed can add the provided model.
+        $this->store->validateEmbedSet($embedMeta->getEmbedMetadata(), $current->getType());
+
+        if (null === $original || $current->getHash() !== $original->getHash()) {
+            $this->modified[$key] = $current;
+        }
         return $this;
     }
 

@@ -3,6 +3,8 @@
 namespace As3\Modlr\Model;
 
 use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
+use As3\Modlr\Metadata\Properties\AttributeMetadata;
+use As3\Modlr\Metadata\Properties\EmbeddedMetadata;
 use As3\Modlr\Store\Store;
 
 /**
@@ -30,5 +32,64 @@ class Embed extends AbstractModel
     public function getCompositeKey()
     {
         return spl_object_hash($this);
+    }
+
+    /**
+     * Gets the unique identifier of this embed.
+     * Generates a hash.
+     *
+     * @api
+     * @return  string
+     */
+    public function getHash()
+    {
+        $hash = [];
+        foreach ($this->properties->getMetadata()->getProperties() as $key => $propMeta) {
+            if (true === $propMeta->isAttribute()) {
+                $hash[$key] = $this->prepareAttributeForHash($propMeta);
+            }
+
+            if (true === $propMeta->isEmbed()) {
+                $hash[$key] = $this->prepareEmbedForHash($propMeta);
+            }
+
+        }
+        ksort($hash);
+        return md5(serialize($hash));
+    }
+
+    private function prepareAttributeForHash(AttributeMetadata $attrMeta)
+    {
+        $key   = $attrMeta->getKey();
+        $value = $this->get($key);
+
+        if (null === $value) {
+            return;
+        }
+        switch ($attrMeta->dataType) {
+            case 'date':
+                $value = $value->getTimestamp();
+                break;
+            case 'object':
+                $value = (array) $object;
+                ksort($value);
+                break;
+            case 'mixed':
+                $value = serialize($value);
+                break;
+            case 'array':
+                sort($value);
+                break;
+        }
+        return $value;
+    }
+
+    private function prepareEmbedForHash(EmbeddedMetadata $embedMeta)
+    {
+        if (true === $propMeta->isOne()) {
+            $embed = $this->get($key);
+            return (null === $embed) ? null : $embed->getHash();
+        }
+        return $this->get($key)->getHash();
     }
 }

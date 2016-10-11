@@ -17,7 +17,7 @@ abstract class AbstractModel
      *
      * @var Properties
      */
-    private $properties;
+    protected $properties;
 
     /**
      * Whether the model has been flagged for deletion.
@@ -52,6 +52,17 @@ abstract class AbstractModel
     {
         throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         return $this->properties->clear($key);
+    }
+
+    /**
+     * Creates a new Embed model instance for the provided property key.
+     *
+     * @param   string  $key
+     * @return  Embed
+     */
+    public function createEmbedFor($key)
+    {
+        return $this->properties->createEmbedFor($key);
     }
 
     /**
