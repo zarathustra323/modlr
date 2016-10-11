@@ -50,8 +50,8 @@ abstract class AbstractModel
      */
     public function clear($key)
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this->properties->clear($key);
+        $this->properties->clear($key);
+        return $this;
     }
 
     /**
@@ -76,7 +76,6 @@ abstract class AbstractModel
     public function delete()
     {
         if (true === $this->getMetadata()->isEmbedded()) {
-            // @todo Should this actually remove the embed completely?
             return $this;
         }
         if (true === $this->isNew()) {

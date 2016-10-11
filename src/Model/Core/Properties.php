@@ -150,6 +150,27 @@ class Properties
     }
 
     /**
+     * Clears a property value.
+     * For an attributes or has-ones, will set the value to null.
+     * For collections, will clear the collection contents.
+     *
+     * @param   string  $key    The property key.
+     * @return  self
+     */
+    public function clear($key)
+    {
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
+            return $this;
+        }
+        if (true === $propMeta->isAttribute() || true === $propMeta->isEmbedOne() || true === $propMeta->isRelationshipOne()) {
+            return $this->set($key, null);
+        }
+        // Clear the has-many / embed-many collection.
+        $this->get($key)->clear();
+        return $this;
+    }
+
+    /**
      * Creates a new Embed model instance for the provided property key.
      *
      * @param   string  $key
