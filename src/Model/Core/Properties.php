@@ -44,7 +44,7 @@ class Properties
     protected $original = [];
 
     /**
-     * Properties that have been flagged for removal.
+     * Flags properties that have been marked for removal.
      * Stored as $propKey => true.
      *
      * @var array
@@ -67,7 +67,7 @@ class Properties
     protected $store;
 
     /**
-     * Properties that have been touched and converted to internal values.
+     * Flags properties that have been touched and converted to internal values.
      * Stored as $propKey => true.
      *
      * @var array
@@ -117,13 +117,17 @@ class Properties
         }
         foreach ($this->touched as $key => $value) {
             $propMeta = $this->metadata->getProperty($key);
-            if (false === $propMeta->isEmbedOne()) {
-                continue;
-            }
 
-            $embed = $this->getOriginalValue($propMeta);
-            if (null !== $embed && true === $embed->isDirty()) {
-                return true;
+            if (true === $propMeta->isEmbedOne()) {
+                $embed = $this->getOriginalValue($propMeta);
+                if (null !== $embed && true === $embed->isDirty()) {
+                    return true;
+                }
+            }
+            if (true === $propMeta->isRelationshipMany() || true === $propMeta->isEmbedMany()) {
+                if (true === $this->get($propMeta->getKey())->isDirty()) {
+                    return true;
+                }
             }
         }
         return false;
@@ -203,18 +207,14 @@ class Properties
             return $this->getCalculatedAttrValue($key);
         }
         if (isset($this->remove[$key])) {
-            // @todo Vet that this is needed... Could causes problems as the collections would not be the same if add/remove called multiple times.
-            // Ensures the default/converted values are still returned for the specified types.
-            $useDefaults = ['relationship-many' => true, 'embed-many' => true];
-            if (isset($useDefaults[$propMeta->getType()])) {
-                return $this->getOriginalValue($propMeta);
-            }
+            // The value is flagged for removal.
             return;
         }
         if (isset($this->modified[$key])) {
             // The value was modified since loading from the persistence layer.
             return $this->modified[$key];
         }
+        // Get the original value (touch/convert if necessary).
         return $this->getOriginalValue($propMeta);
     }
 
@@ -253,6 +253,25 @@ class Properties
             return false;
         }
         return $propMeta->isCalculated();
+    }
+
+    /**
+     * Pushes a Model into a has-many collection.
+     *
+     * @param   string          $key
+     * @param   AbstractModel   $model
+     * @return  self
+     */
+    public function push($key, AbstractModel $model)
+    {
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
+            return $this;
+        }
+        if (false === $propMeta->isRelationshipMany() || false === $propMeta->isEmbedMany()) {
+            return $this;
+        }
+        $this->get($key)->push($model);
+        return $this;
     }
 
     /**

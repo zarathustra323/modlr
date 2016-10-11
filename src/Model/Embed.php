@@ -31,7 +31,7 @@ class Embed extends AbstractModel
      */
     public function getCompositeKey()
     {
-        return spl_object_hash($this);
+        return sprintf('%s.%s', $this->getType(), $this->getHash());
     }
 
     /**

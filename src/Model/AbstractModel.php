@@ -211,7 +211,7 @@ abstract class AbstractModel
      */
     public function push($key, AbstractModel $model)
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $this->properties->push($key, $model);
         return $this;
     }
 

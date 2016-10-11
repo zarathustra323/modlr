@@ -137,6 +137,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function clear()
     {
+        $this->touch();
         $this->current = [];
         $this->added = [];
         $this->removed = $this->original;
@@ -328,6 +329,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function rollback()
     {
+        $this->touch();
         $this->current = $this->original;
         $this->added = [];
         $this->removed = [];
