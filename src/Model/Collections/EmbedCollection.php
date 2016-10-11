@@ -41,6 +41,21 @@ class EmbedCollection extends AbstractCollection
     }
 
     /**
+     * Gets the identifying hash for this collection.
+     *
+     * @return  string
+     */
+    public function getHash()
+    {
+        $hash = [];
+        foreach ($this as $embed) {
+            $hash[] = $embed->getHash();
+        }
+        sort($hash);
+        return md5(serialize($hash));
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function isDirty()
@@ -54,7 +69,15 @@ class EmbedCollection extends AbstractCollection
     /**
      * {@inheritdoc}
      */
-    protected function touch($force = false)
+    protected function proxy()
+    {
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function touch()
     {
         return $this;
     }

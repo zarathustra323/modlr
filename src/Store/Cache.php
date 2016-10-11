@@ -108,7 +108,6 @@ class Cache
         if (isset($this->models[$typeKey][$identifier])) {
             return $this->models[$typeKey][$identifier];
         }
-        return null;
     }
 
     /**

@@ -37,40 +37,41 @@ class ModelCollection extends AbstractCollection
 
     /**
      * {@inheritdoc}
-     *
-     * Overloaded to ensure proxies models are initialized.
      */
-    public function allWithoutLoad()
+    protected function proxy()
     {
-        $this->initializeProxies();
-        return parent::allWithoutLoad();
+        if (true === $this->isLoaded() || true === $this->isProxied()) {
+            return $this;
+        }
+
+        $this->proxied = true;
+
+        // @todo Need to determine how to handle polymorphic models here.
+        $models = $this->store->_getLoader()->createProxyModels($this->getType(), $this->identifiers, $this->store);
+        $this->setModels($models);
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function validateAdd(AbstractModel $model)
+    protected function touch()
     {
-        if (!$model instanceof Model) {
-            throw new \InvalidArgumentException('The model must be an instanceof of Model');
-        }
-        $this->store->validateRelationshipSet($this->getMetadata(), $model->getType());
-    }
-
-    /**
-     * Loads the collection from the persistence layer, if necessary.
-     *
-     * @param   bool    $force
-     * @return  self
-     */
-    protected function touch($force = false)
-    {
-        if (true === $this->isLoaded() && false == $force) {
+        if (true === $this->isLoaded()) {
             return $this;
         }
 
+        $this->proxy();
         $this->loaded = true;
-        $identifiers = $this->getIdentifiers();
+
+        $identifiers = [];
+        foreach ($this->original as $model) {
+            if (false === $model->isLoaded()) {
+                $identifiers[] = $model->getId();
+            }
+        }
+
         if (empty($identifiers)) {
             return $this;
         }
@@ -83,36 +84,13 @@ class ModelCollection extends AbstractCollection
     }
 
     /**
-     * Gets the apporpiate indetifiers for querying/loading this collection.
-     *
-     * @return  string[]
+     * {@inheritdoc}
      */
-    private function getIdentifiers()
+    protected function validateAdd(AbstractModel $model)
     {
-        $this->initializeProxies();
-        $identifiers = [];
-        foreach ($this->original as $model) {
-            if (false === $model->isLoaded()) {
-                $identifiers[] = $model->getId();
-            }
+        if (!$model instanceof Model) {
+            throw new \InvalidArgumentException('The model must be an instanceof of Model');
         }
-        return $identifiers;
-    }
-
-    /**
-     * Initializes proxy models on this collection.
-     *
-     * @return  self
-     */
-    private function initializeProxies()
-    {
-        if (!empty($this->original)) {
-            return $this;
-        }
-        foreach ($this->identifiers as $identifier) {
-            $model = $this->store->_getLoader()->createProxyModel($this->getType(), $identifier, $this->store);
-            $this->add($model);
-        }
-        return $this;
+        $this->store->validateRelationshipSet($this->getMetadata(), $model->getType());
     }
 }

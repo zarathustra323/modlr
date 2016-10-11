@@ -53,6 +53,13 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     protected $original = [];
 
     /**
+     * Whether the collection has been loaded with proxy models from the original identifiers.
+     *
+     * @var bool
+     */
+    protected $proxied = false;
+
+    /**
      * Models removed from this collection.
      * Tracks removed models for rollback/change purposes.
      *
@@ -104,12 +111,13 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * Returns all models in this collection without triggering auto-loading.
+     * Returns all models in this collection.
      *
      * @return  AbstractModel[]
      */
-    public function allWithoutLoad()
+    public function all()
     {
+        $this->proxy();
         return $this->current;
     }
 
@@ -120,6 +128,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function calculateChangeSet()
     {
+        // @todo Vet touch.
         $this->touch();
         if (false === $this->isDirty()) {
             return [];
@@ -137,7 +146,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function clear()
     {
-        $this->touch();
+        $this->proxy();
         $this->current = [];
         $this->added = [];
         $this->removed = $this->original;
@@ -149,7 +158,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function count()
     {
-        $this->touch();
+        $this->proxy();
         return count($this->current);
     }
 
@@ -158,7 +167,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function getIterator()
     {
-        $this->touch();
+        $this->proxy();
         return new ArrayIterator($this->current);
     }
 
@@ -179,7 +188,6 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function getSingleResult()
     {
-        $this->touch();
         if (0 === $this->count()) {
             return null;
         }
@@ -214,7 +222,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function has(AbstractModel $model)
     {
-        $this->touch();
+        $this->proxy();
         $key = $model->getCompositeKey();
         return isset($this->current[$key]);
     }
@@ -226,6 +234,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function hasDirtyModels()
     {
+        // @todo Vet touch.
         $this->touch();
         foreach ($this->current as $model) {
             if (true === $model->isDirty()) {
@@ -266,6 +275,16 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * Determines if models in this collection have been proxied.
+     *
+     * @return  bool
+     */
+    public function isProxied()
+    {
+        return $this->proxied;
+    }
+
+    /**
      * Pushes a Model into the collection.
      *
      * @param   AbstractModel   $model  The model to push.
@@ -273,7 +292,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function push(AbstractModel $model)
     {
-        $this->touch();
+        $this->proxy();
         $this->validateAdd($model);
         $key = $model->getCompositeKey();
         if (isset($this->added[$key])) {
@@ -302,7 +321,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function remove(AbstractModel $model)
     {
-        $this->touch();
+        $this->proxy();
         $this->validateAdd($model);
         $key = $model->getCompositeKey();
         if (isset($this->removed[$key])) {
@@ -329,11 +348,22 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function rollback()
     {
-        $this->touch();
+        $this->proxy();
         $this->current = $this->original;
         $this->added = [];
         $this->removed = [];
         return $this;
+    }
+
+    /**
+     * Returns all models in this collection.
+     *
+     * @see     all()
+     * @return  AbstractModel[]
+     */
+    public function toArray()
+    {
+        return $this->all();
     }
 
     /**
@@ -400,6 +430,8 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     protected function setModels(array $models)
     {
+        $this->current  = [];
+        $this->original = [];
         foreach ($models as $model) {
             $this->add($model);
         }
@@ -407,13 +439,20 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * Proxies models from the initial identifier set, if applicable.
+     *
+     * @abstract
+     * @return  self
+     */
+    abstract protected function proxy();
+
+    /**
      * Loads the collection from the persistence layer, if necessary.
      *
      * @abstract
-     * @param   bool    $force
      * @return  self
      */
-    abstract protected function touch($force = false);
+    abstract protected function touch();
 
     /**
      * Validates that the collection supports the incoming model.

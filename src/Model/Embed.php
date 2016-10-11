@@ -96,7 +96,8 @@ class Embed extends AbstractModel
      */
     private function prepareEmbedForHash(EmbeddedMetadata $embedMeta)
     {
-        if (true === $propMeta->isOne()) {
+        $key = $embedMeta->getKey();
+        if (true === $embedMeta->isOne()) {
             $embed = $this->get($key);
             return (null === $embed) ? null : $embed->getHash();
         }
