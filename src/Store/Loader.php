@@ -94,6 +94,15 @@ class Loader
         // Must use the type from the record to cover polymorphic models.
         $metadata = $this->mf->getMetadataForType($record['type']);
 
+        if (null !== $model = $this->cache->get($record['type'], $record['identifier'])) {
+            if (false === $model->isLoaded()) {
+                // Reinitialize the model with the record.
+                $model->_getProperties()->reinitialize($record['properties']);
+                // @todo Fire lifecycle event here.
+            }
+            return $model;
+        }
+
         $start = microtime(true);
         $model = new Model($metadata, $record['identifier'], $store, $record['properties']);
         var_dump(round(((microtime(true) - $start) * 1000), 4) . 'ms');
@@ -116,16 +125,7 @@ class Loader
     {
         $models = [];
         foreach ($records as $record) {
-            if (true === $this->cache->has($record['type'], $record['identifier'])) {
-                $model = $this->cache->get($record['type'], $record['identifier']);
-                if (false === $model->isLoaded()) {
-                    // Reinitialize the model with the record.
-                    $model->_getProperties()->reinitialize($record['properties']);
-                    // @todo Fire lifecycle event here.
-                }
-            } else {
-                $model = $this->createModel($typeKey, $record, $store);
-            }
+            $model = $this->createModel($typeKey, $record, $store);
         }
         return $models;
     }
