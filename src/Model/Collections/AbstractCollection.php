@@ -112,17 +112,6 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * Returns all models in this collection.
-     *
-     * @return  AbstractModel[]
-     */
-    public function all()
-    {
-        $this->proxy();
-        return $this->current;
-    }
-
-    /**
      * Calculates the change set of this collection.
      *
      * @return  array
@@ -356,17 +345,6 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
         $this->added = [];
         $this->removed = [];
         return $this;
-    }
-
-    /**
-     * Returns all models in this collection.
-     *
-     * @see     all()
-     * @return  AbstractModel[]
-     */
-    public function toArray()
-    {
-        return $this->all();
     }
 
     /**

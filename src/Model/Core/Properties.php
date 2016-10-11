@@ -104,6 +104,38 @@ class Properties
     }
 
     /**
+     * Applies an array of raw (but formatted) model properties to the model instance.
+     * Is generally provided from the API adapter side.
+     *
+     * @param   array   $properties     The properties to apply.
+     * @return  self
+     */
+    public function apply(array $properties)
+    {
+        foreach ($properties as $key => $value) {
+            if (null === $propMeta = $this->metadata->getProperty($key)) {
+                continue;
+            }
+            if ($propMeta->isAttribute()) {
+                $this->set($key, $value);
+            }
+            if ($propMeta->isRelationshipOne()) {
+                $this->applyRelationshipOne($key, $value);
+            }
+            if ($propMeta->isRelationshipMany()) {
+                $this->applyRelationshipMany($propMeta, $key, $value);
+            }
+            if ($propMeta->isEmbedOne()) {
+                $this->applyEmbedOne($key, $value);
+            }
+            if ($propMeta->isEmbedMany()) {
+                $this->applyEmbedMany($propMeta, $key, $value);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Determines if any of the properties are dirty.
      *
      * @return  bool
@@ -152,6 +184,28 @@ class Properties
     public function areNew()
     {
         return $this->state['new'];
+    }
+
+    /**
+     * Calculates any property changes.
+     *
+     * @return  array
+     */
+    public function calculateChangeSet()
+    {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $set = [];
+        foreach ($this->current as $key => $current) {
+            $original = isset($this->original[$key]) ? $this->original[$key] : null;
+            $set[$key]['old'] = $original;
+            $set[$key]['new'] = $current;
+        }
+        foreach ($this->remove as $key) {
+            $set[$key]['old'] = $this->original[$key];
+            $set[$key]['new'] = null;
+        }
+        ksort($set);
+        return $set;
     }
 
     /**
@@ -342,6 +396,93 @@ class Properties
     }
 
     /**
+     * Applies an embed-many value.
+     *
+     * @param   EmbeddedMetadata    $embedMeta
+     * @param   string              $key
+     * @param   mixed               $value
+     */
+    private function applyEmbedMany(EmbeddedMetadata $embedMeta, $key, $value)
+    {
+        if (empty($value)) {
+            $this->clear($key);
+            return;
+        }
+        if (!is_array($value)) {
+            return;
+        }
+
+        $collection = $this->getLoader()->createEmbedCollection($embedMeta, $value, $this->store);
+        if ($collection->getHash() === $this->get($key)->getHash()) {
+            // The current collection is the same as the incoming collection.
+            return;
+        }
+
+        // The incoming collection is different. Clear the current collection and push the new values.
+        $this->clear($key);
+        foreach ($collection as $embed) {
+            $this->push($key, $embed);
+        }
+    }
+
+    /**
+     * Applies an embed-one value.
+     *
+     * @param   string  $key
+     * @param   mixed   $value
+     */
+    private function applyEmbedOne($key, $value)
+    {
+        if (empty($value)) {
+            $this->clear($key);
+            return;
+        }
+        if (!is_array($value)) {
+            return;
+        }
+
+        $embed = $this->get($key) ?: $this->createEmbedFor($key);
+        $embed->apply($value);
+        $this->set($key, $embed);
+    }
+
+    /**
+     * Applies a rel-many value.
+     *
+     * @param   RelationshipMetadata    $relMeta
+     * @param   string                  $key
+     * @param   mixed                   $value
+     */
+    private function applyRelationshipMany(RelationshipMetadata $relMeta, $key, $value)
+    {
+        if ($relMeta->isInverse()) {
+            return;
+        }
+        $value = (array) $value;
+        $this->clear($key);
+        $collection = $this->getLoader()->createModelCollection($relMeta, $value, $this->store);
+        foreach ($collection as $model) {
+            $this->push($key, $model);
+        }
+    }
+
+    /**
+     * Applies a rel-one value.
+     *
+     * @param   string  $key
+     * @param   mixed   $value
+     */
+    private function applyRelationshipOne($key, $value)
+    {
+        if (empty($value) || !is_array($value)) {
+            $value = null;
+        } else {
+            $value = $this->getLoader()->createProxyModel($value['type'], $value['id'], $this->store);
+        }
+        $this->set($key, $value);
+    }
+
+    /**
      * Clears any existing property state for the provided key.
      *
      * @param   string  $key
@@ -459,6 +600,7 @@ class Properties
      */
     private function initialize(array $properties = null)
     {
+        // @todo This will likely need to, at least, set any default values! Or the changeset will have to account for it.
         if (true === $this->areNew() || null === $properties) {
             return $this;
         }
@@ -607,156 +749,5 @@ class Properties
             $this->setStateLoaded();
         }
         return $this;
-    }
-
-    // ********
-
-
-
-    /**
-     * Replaces the current properties with new ones.
-     * Will revert/rollback any current changes.
-     *
-     * @param   array   $original
-     * @return  self
-     */
-    public function replace(array $original)
-    {
-        $this->rollback();
-        $this->original = $original;
-        return $this;
-    }
-
-    /**
-     * Calculates any property changes.
-     *
-     * @return  array
-     */
-    public function calculateChangeSet()
-    {
-        $set = [];
-        foreach ($this->current as $key => $current) {
-            $original = isset($this->original[$key]) ? $this->original[$key] : null;
-            $set[$key]['old'] = $original;
-            $set[$key]['new'] = $current;
-        }
-        foreach ($this->remove as $key) {
-            $set[$key]['old'] = $this->original[$key];
-            $set[$key]['new'] = null;
-        }
-        ksort($set);
-        return $set;
-    }
-
-    /**
-     * Clears an property from the removal queue.
-     *
-     * @param   string  $key    The field key.
-     * @return  self
-     */
-    protected function clearRemoval($key)
-    {
-        if (false === $this->willRemove($key)) {
-            return $this;
-        }
-        $key = array_search($key, $this->remove);
-        unset($this->remove[$key]);
-        $this->remove = array_values($this->remove);
-        return $this;
-    }
-
-    /**
-     * Clears an property as having been changed.
-     *
-     * @param   string  $key    The field key.
-     * @return  self
-     */
-    protected function clearChange($key)
-    {
-        if (true === $this->willChange($key)) {
-            unset($this->current[$key]);
-        }
-        return $this;
-    }
-
-    /**
-     * Determines if an property is in the removal queue.
-     *
-     * @param   string  $key    The field key.
-     * @return  bool
-     */
-    protected function willRemove($key)
-    {
-        return in_array($key, $this->remove);
-    }
-
-    /**
-     * Determines if an property has a new value.
-     *
-     * @param   string  $key    The field key.
-     * @return  bool
-     */
-    protected function willChange($key)
-    {
-        return null !== $this->getCurrent($key);
-    }
-
-    /**
-     * Determines if an property has an original value.
-     *
-     * @param   string  $key    The field key.
-     * @return  bool
-     */
-    protected function hasOriginal($key)
-    {
-        return null !== $this->getOriginal($key);
-    }
-
-    /**
-     * Gets the property's original value.
-     *
-     * @param   string  $key    The field key.
-     * @return  mixed
-     */
-    protected function getOriginal($key)
-    {
-        if (isset($this->original[$key])) {
-            return $this->original[$key];
-        }
-        return null;
-    }
-
-    /**
-     * Gets all original properties.
-     *
-     * @return  array
-     */
-    protected function getOriginalAll()
-    {
-        return $this->original;
-    }
-
-    /**
-     * Gets all current properties.
-     *
-     * @return  array
-     */
-    protected function getCurrentAll()
-    {
-        return $this->current;
-    }
-
-    /**
-     * Gets the property's current value.
-     *
-     * @param   string  $key    The field key.
-     * @return  mixed
-     */
-    protected function getCurrent($key)
-    {
-        if (isset($this->current[$key])) {
-            return $this->current[$key];
-        }
-        return null;
     }
 }

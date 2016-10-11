@@ -268,7 +268,7 @@ abstract class AbstractModel
      */
     public function rollback()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $this->properties->rollback();
         return $this;
     }
 
@@ -369,6 +369,11 @@ abstract class AbstractModel
         }
     }
 
+    /**
+     * Retrieves the model record from the persistence layer.
+     *
+     * @return  self
+     */
     private function retrieveFromStore()
     {
         $store = $this->getStore();
