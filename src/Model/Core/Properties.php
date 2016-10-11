@@ -8,6 +8,7 @@ use As3\Modlr\Metadata\Properties\AttributeMetadata;
 use As3\Modlr\Metadata\Properties\EmbeddedMetadata;
 use As3\Modlr\Metadata\Properties\PropertyMetadata;
 use As3\Modlr\Metadata\Properties\RelationshipMetadata;
+use As3\Modlr\Model\AbstractModel;
 use As3\Modlr\Model\Embed;
 use As3\Modlr\Model\Model;
 use As3\Modlr\Models\Collections;
@@ -267,10 +268,9 @@ class Properties
         if (null === $propMeta = $this->metadata->getProperty($key)) {
             return $this;
         }
-        if (false === $propMeta->isRelationshipMany() || false === $propMeta->isEmbedMany()) {
-            return $this;
+        if (true === $propMeta->isRelationshipMany() || true === $propMeta->isEmbedMany()) {
+            $this->get($key)->push($model);
         }
-        $this->get($key)->push($model);
         return $this;
     }
 
@@ -294,12 +294,13 @@ class Properties
      */
     public function remove($key, AbstractModel $model)
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        // $this->remove[$key] = true;
-        // if (isset($this->modified[$key])) {
-        //     unset($this->modified[$key]);
-        // }
-        // return $this;
+        if (null === $propMeta = $this->metadata->getProperty($key)) {
+            return $this;
+        }
+        if (true === $propMeta->isRelationshipMany() || true === $propMeta->isEmbedMany()) {
+            $this->get($key)->remove($model);
+        }
+        return $this;
     }
 
     /**

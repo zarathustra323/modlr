@@ -237,7 +237,7 @@ abstract class AbstractModel
      */
     public function remove($key, AbstractModel $model)
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
+        $this->properties->remove($key, $model);
         return $this;
     }
 
