@@ -35,10 +35,8 @@ class Embed extends AbstractModel
     }
 
     /**
-     * Gets the unique identifier of this embed.
-     * Generates a hash.
+     * Generates an identifying hash for the embed.
      *
-     * @api
      * @return  string
      */
     public function getHash()
@@ -58,6 +56,12 @@ class Embed extends AbstractModel
         return md5(serialize($hash));
     }
 
+    /**
+     * Prepares an attriubute value for the embed hash.
+     *
+     * @param   AttributeMetadata   $attrMeta
+     * @return  mixed
+     */
     private function prepareAttributeForHash(AttributeMetadata $attrMeta)
     {
         $key   = $attrMeta->getKey();
@@ -84,6 +88,12 @@ class Embed extends AbstractModel
         return $value;
     }
 
+    /**
+     * Prepares an embed value for the embed hash.
+     *
+     * @param   EmbeddedMetadata    $embedMeta
+     * @return  string|null
+     */
     private function prepareEmbedForHash(EmbeddedMetadata $embedMeta)
     {
         if (true === $propMeta->isOne()) {
