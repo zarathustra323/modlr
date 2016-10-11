@@ -18,20 +18,20 @@ class ModelCollection extends AbstractCollection
     /**
      * @var string[]
      */
-    protected $identifiers;
+    protected $references;
 
     /**
      * Constructor.
      *
      * @param   EntityMetadata  $metadata
      * @param   Store           $store
-     * @param   AbstractModel[] $models
+     * @param   array           $references
      * @param   int             $totalCount
      * @param   bool            $loaded
      */
-    public function __construct(EntityMetadata $metadata, Store $store, array $identifiers, $totalCount)
+    public function __construct(EntityMetadata $metadata, Store $store, array $references, $totalCount)
     {
-        $this->identifiers = $identifiers;
+        $this->references = $references;
         parent::__construct($metadata, $store, $totalCount);
     }
 
@@ -46,8 +46,7 @@ class ModelCollection extends AbstractCollection
 
         $this->proxied = true;
 
-        // @todo Need to determine how to handle polymorphic models here.
-        $models = $this->store->_getLoader()->createProxyModels($this->getType(), $this->identifiers, $this->store);
+        $models = $this->store->_getLoader()->createProxyModels($this->references, $this->store);
         $this->setModels($models);
 
         return $this;

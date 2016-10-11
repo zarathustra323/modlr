@@ -135,22 +135,26 @@ class Loader
      * Loads a relationship-many model collection.
      *
      * @param   RelationshipMetadata    $relMeta
-     * @param   array                   $references
+     * @param   array|null              $references
      * @param   Store                   $store
-     * @return  Collections\Collection
+     * @return  Collections\ModelCollection
      */
-    public function createModelCollection(RelationshipMetadata $relMeta, array $references, Store $store)
+    public function createModelCollection(RelationshipMetadata $relMeta, array $references = null, Store $store)
     {
-        $metadata = $this->mf->getMetadataForType($relMeta->getModelType());
+        $metadata   = $this->mf->getMetadataForType($relMeta->getModelType());
+        $references = $references ?: [];
 
-        $identifiers = [];
-        foreach ($references as $ref) {
+        foreach ($references as $index => $ref) {
             if (!isset($ref['id'])) {
+                unset($references[$index]);
                 continue;
             }
-            $identifiers[] = $ref['id'];
+            $references[$index] = [
+                'id'    => $store->convertId($ref['id']),
+                'type'  => isset($ref['type']) ? $ref['type'] : $relMeta->getModelType(),
+            ];
         }
-        return new Collections\ModelCollection($metadata, $store, $identifiers, count($identifiers));
+        return new Collections\ModelCollection($metadata, $store, $references, count($references));
     }
 
     /**
@@ -160,6 +164,7 @@ class Loader
      * @param   string  $identifier The model id.
      * @param   Store   $store      The model store.
      * @return  Model
+     * @throws  \RuntimeException|StoreException
      */
     public function createNewModel($modelType, $identifier, Store $store)
     {
@@ -198,16 +203,15 @@ class Loader
     /**
      * Creates multiple proxy models from a set of identifiers
      *
-     * @param   string  $modelType      The model type.
-     * @param   array   $identifiers    The persistence layer records.
+     * @param   array   $references     The persistence layer references.
      * @param   Store   $store          The model store.
      * @return  Model[]
      */
-    public function createProxyModels($modelType, array $identifiers, Store $store)
+    public function createProxyModels(array $references, Store $store)
     {
         $models = [];
-        foreach ($identifiers as $identifier) {
-            $models[] = $this->createProxyModel($modelType, $identifier, $store);
+        foreach ($references as $ref) {
+            $models[] = $this->createProxyModel($ref['type'], $ref['id'], $store);
         }
         return $models;
     }

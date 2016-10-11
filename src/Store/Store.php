@@ -367,31 +367,6 @@ class Store
     }
 
     /**
-     * Loads a has-many embed collection.
-     *
-     * @param   EmbeddedMetadata    $relMeta
-     * @param   array|null              $embedDocs
-     * @return  Collections\EmbedCollection
-     */
-    public function createEmbedCollection(EmbeddedMetadata $embededPropMeta, array $embedDocs = null)
-    {
-        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
-        if (empty($embedDocs)) {
-            $embedDocs = [];
-        }
-        if (false === $this->isSequentialArray($embedDocs)) {
-            throw StoreException::badRequest(sprintf('Improper has-many data detected for embed "%s" - a sequential array is required.', $embededPropMeta->getKey()));
-        }
-
-        $embeds = [];
-        foreach ($embedDocs as $embedDoc) {
-            $embeds[] = $this->loadEmbed($embededPropMeta->embedMeta, $embedDoc);
-        }
-
-        return new Collections\EmbedCollection($embededPropMeta->embedMeta, $this, $embeds);
-    }
-
-    /**
      * Loads a has-many model collection.
      *
      * @param   RelationshipMetadata    $relMeta
