@@ -3,6 +3,7 @@
 namespace As3\Modlr\Store;
 
 use As3\Modlr\Events\EventDispatcher;
+use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Metadata\EmbedMetadata;
 use As3\Modlr\Metadata\MetadataFactory;
 use As3\Modlr\Metadata\Properties\EmbeddedMetadata;
@@ -83,14 +84,14 @@ class Loader
     /**
      * Creates a model from a persistence layer Record.
      *
-     * @param   string  $typeKey    The model type.
+     * @param   string  $modelType  The model type.
      * @param   array   $record     The persistence layer record.
      * @param   Store   $store      The model store.
      * @return  Model
      */
-    public function createModel($typeKey, array $record, Store $store)
+    public function createModel($modelType, array $record, Store $store)
     {
-        $this->mf->validateResourceTypes($typeKey, $record['type']);
+        $this->mf->validateResourceTypes($modelType, $record['type']);
         // Must use the type from the record to cover polymorphic models.
         $metadata = $this->mf->getMetadataForType($record['type']);
 
@@ -150,6 +151,29 @@ class Loader
             $identifiers[] = $ref['id'];
         }
         return new Collections\ModelCollection($metadata, $store, $identifiers, count($identifiers));
+    }
+
+    /**
+     * Creates a new model instance
+     *
+     * @param   string  $modelType  The model type.
+     * @param   string  $identifier The model id.
+     * @param   Store   $store      The model store.
+     * @return  Model
+     */
+    public function createNewModel($modelType, $identifier, Store $store)
+    {
+        if (true === $this->cache->has($modelType, $identifier)) {
+            throw new \RuntimeException(sprintf('A model is already loaded for type "%s" using identifier "%s"', $modelType, $identifier));
+        }
+        $metadata = $this->mf->getMetadataForType($modelType);
+        if (true === $metadata->isAbstract()) {
+            throw StoreException::badRequest('Abstract models cannot be created directly. You must instantiate a child class');
+        }
+        // @todo Dispatch post load lifecycle event??
+        $model = new Model($metadata, $identifier, $store, null, true);
+        $this->cache->push($model);
+        return $model;
     }
 
     /**

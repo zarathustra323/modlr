@@ -81,6 +81,34 @@ class Store
     }
 
     /**
+     * Converts the id value to a normalized string.
+     *
+     * @param   mixed   $identenfier    The identifier to convert.
+     * @return  string
+     */
+    public function convertId($identifier)
+    {
+        return (String) $identifier;
+    }
+
+    /**
+     * Creates a new record.
+     * The model will not be comitted to the persistence layer until $model->save() is called.
+     *
+     * @api
+     * @param   string      $modelType  The model type.
+     * @param   string|null $identifier The model identifier. Generally should be null unless client-side id generation is in place.
+     * @return  Model
+     */
+    public function create($modelType, $identifier = null)
+    {
+        if (empty($identifier)) {
+            $identifier = $this->generateIdentifier($modelType);
+        }
+        return $this->loader->createNewModel($modelType, $identifier, $this);
+    }
+
+    /**
      * Finds a single record from the persistence layer, by type and id.
      * Will return a Model object if found, or throw an exception if not.
      *
@@ -191,35 +219,6 @@ class Store
             throw StoreException::badRequest(sprintf('Search is not enabled for model type "%s"', $metadata->type));
         }
         return new Collections\Collection($metadata, $this, [], 0);
-    }
-
-    /**
-     * Converts the id value to a normalized string.
-     *
-     * @param   mixed   $identenfier    The identifier to convert.
-     * @return  string
-     */
-    public function convertId($identifier)
-    {
-        return (String) $identifier;
-    }
-
-    /**
-     * Creates a new record.
-     * The model will not be comitted to the persistence layer until $model->save() is called.
-     *
-     * @api
-     * @param   string      $typeKey    The model type.
-     * @param   string|null $identifier The model identifier. Generally should be null unless client-side id generation is in place.
-     * @return  Model
-     */
-    public function create($typeKey, $identifier = null)
-    {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        if (empty($identifier)) {
-            $identifier = $this->generateIdentifier($typeKey);
-        }
-        return $this->createModel($typeKey, $identifier);
     }
 
     /**
@@ -351,30 +350,6 @@ class Store
         $args = new ModelLifecycleArguments($model);
         $this->dispatcher->dispatch($eventName, $args);
         return $this;
-    }
-
-    /**
-     * Creates a new Model instance.
-     * Will not be persisted until $model->save() is called.
-     *
-     * @param   string  $typeKey    The model type.
-     * @param   string  $identifier The model identifier.
-     * @return  Model
-     */
-    protected function createModel($typeKey, $identifier)
-    {
-        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
-        if (true === $this->cache->has($typeKey, $identifier)) {
-            throw new \RuntimeException(sprintf('A model is already loaded for type "%s" using identifier "%s"', $typeKey, $identifier));
-        }
-        $metadata = $this->getMetadataForType($typeKey);
-        if (true === $metadata->isAbstract()) {
-            throw StoreException::badRequest('Abstract models cannot be created directly. You must instantiate a child class');
-        }
-        $model = new Model($metadata, $identifier, $this);
-        $model->getState()->setNew();
-        $this->cache->push($model);
-        return $model;
     }
 
     /**
