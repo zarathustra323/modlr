@@ -125,7 +125,7 @@ class Loader
     {
         $models = [];
         foreach ($records as $record) {
-            $model = $this->createModel($typeKey, $record, $store);
+            $models[] = $this->createModel($typeKey, $record, $store);
         }
         return $models;
     }

@@ -6,6 +6,7 @@ use \ArrayIterator;
 use \Countable;
 use \IteratorAggregate;
 use As3\Modlr\Metadata\Interfaces\MetadataInterface;
+use As3\Modlr\Model\Core\CollectionIterator;
 use As3\Modlr\Model\AbstractModel;
 use As3\Modlr\Store\Store;
 
@@ -168,7 +169,9 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
     public function getIterator()
     {
         $this->proxy();
-        return new ArrayIterator($this->current);
+        return new CollectionIterator($this->current, function() {
+            $this->touch();
+        });
     }
 
     /**

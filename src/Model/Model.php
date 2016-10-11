@@ -15,7 +15,7 @@ class Model extends AbstractModel
      *
      * @var string
      */
-    private $identifier;
+    protected $identifier;
 
     /**
      * Constructor.

@@ -2,6 +2,7 @@
 
 namespace As3\Modlr\Model;
 
+use \Closure;
 use As3\Modlr\Model\Core\Properties;
 use As3\Modlr\Metadata\EntityMetadata;
 use As3\Modlr\Metadata\Interfaces\ModelMetadataInterface;
@@ -12,6 +13,14 @@ use As3\Modlr\Store\Store;
  */
 abstract class AbstractModel
 {
+    /**
+     * The collection model loader.
+     * Used when models are iterated over in a collection.
+     *
+     * @var Closure|null
+     */
+    protected $collectionLoader;
+
     /**
      * The model properties.
      *
@@ -24,7 +33,7 @@ abstract class AbstractModel
      *
      * @var bool
      */
-    private $deleted = false;
+    protected $deleted = false;
 
     /**
      * Constructor.
@@ -37,6 +46,16 @@ abstract class AbstractModel
     public function __construct(ModelMetadataInterface $metadata, Store $store, array $properties = null, $new = false)
     {
         $this->properties = new Properties($metadata, $store, $properties, $new);
+    }
+
+    /**
+     * Ensure model type is added to the args.
+     *
+     * @return  array
+     */
+    public function __debugInfo()
+    {
+        return array_merge(['type' => $this->getType()], get_object_vars($this));
     }
 
     /**
@@ -298,11 +317,27 @@ abstract class AbstractModel
      * This should only be used by the internals of Modlr, and not by the end user.
      * Accessing/modifying in userland code will cause stability problems. Do not use.
      *
+     * @access  protected
      * @return  Properties
      */
     public function _getProperties()
     {
         return $this->properties;
+    }
+
+    /**
+     * Sets a closure loader for handling how the model will be loaded from the persistence layer.
+     * Is used when models are iterated over in collections.
+     * Accessing/modifying in userland code will cause stability problems. Do not use - or use at your peril!
+     *
+     * @access  protected
+     * @param   Closure|null    $loader
+     * @return  self
+     */
+    public function _setCollectionLoader(Closure $loader = null)
+    {
+        $this->collectionLoader = $loader;
+        return $this;
     }
 
     /**
@@ -316,13 +351,31 @@ abstract class AbstractModel
         if (true === $this->getMetadata()->isEmbedded() || true === $this->isDeleted()) {
             return $this;
         }
-        if (false === $this->isLoaded() || true == $force) {
-            $store = $this->getStore();
-            $metadata = $this->getMetadata();
-
-            $record = $store->retrieveRecord($this->getType(), $this->getId());
-            $this->properties = new Properties($metadata, $store, $record['properties']);
+        if (true === $force) {
+            return $this->retrieveFromStore();
         }
+        if (true === $this->isLoaded()) {
+            return $this;
+        }
+
+        // Determine the loader source.
+        if (null !== $loader = $this->collectionLoader) {
+            $loader();
+            // Loading complete. Unset the loader.
+            $this->collectionLoader = null;
+            return $this;
+        } else {
+            return $this->retrieveFromStore();
+        }
+    }
+
+    private function retrieveFromStore()
+    {
+        $store = $this->getStore();
+        $metadata = $this->getMetadata();
+
+        $record = $store->retrieveRecord($this->getType(), $this->getId());
+        $this->properties = new Properties($metadata, $store, $record['properties']);
         return $this;
     }
 }
