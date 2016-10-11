@@ -93,7 +93,9 @@ class Store
     {
         $identifier = $this->convertId($identifier);
         if (null !== $model = $this->loader->getModelCache()->get($typeKey, $identifier)) {
-            return $model;
+            if (true === $model->isLoaded()) {
+                return $model;
+            }
         }
         $record = $this->retrieveRecord($typeKey, $identifier);
         return $this->loader->createModel($typeKey, $record, $this);
@@ -134,6 +136,7 @@ class Store
      */
     public function findAll($typeKey, array $identifiers = [], array $fields = [], array $sort = [], $offset = 0, $limit = 0)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         $metadata = $this->getMetadataForType($typeKey);
         if (!empty($identifiers)) {
             throw StoreException::nyi('Finding multiple records with specified identifiers is not yet supported.');
@@ -156,6 +159,7 @@ class Store
      */
     public function findQuery($typeKey, array $criteria, array $fields = [], array $sort = [], $offset = 0, $limit = 0)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         $metadata = $this->getMetadataForType($typeKey);
         $persister = $this->getPersisterFor($typeKey);
         $this->dispatcher->dispatch(Events::preQuery, new PreQueryArguments($metadata, $this, $persister, $criteria));
@@ -181,6 +185,7 @@ class Store
      */
     public function searchAutocomplete($typeKey, $attributeKey, $searchValue)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         $metadata = $this->getMetadataForType($typeKey);
         if (false === $metadata->isSearchEnabled()) {
             throw StoreException::badRequest(sprintf('Search is not enabled for model type "%s"', $metadata->type));
@@ -210,6 +215,7 @@ class Store
      */
     public function create($typeKey, $identifier = null)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         if (empty($identifier)) {
             $identifier = $this->generateIdentifier($typeKey);
         }
@@ -218,7 +224,7 @@ class Store
 
     /**
      * Deletes a model.
-     * The moel will be immediately deleted once retrieved.
+     * The model will be immediately deleted once retrieved.
      *
      * @api
      * @param   string      $typeKey    The model type.
@@ -227,12 +233,13 @@ class Store
      */
     public function delete($typeKey, $identifier)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         $model = $this->find($typeKey, $identifier);
         return $model->delete()->save();
     }
 
     /**
-     * Retrieves a RecordSet object from the persistence layer.
+     * Retrieves a record array hash from the persistence layer.
      *
      * @param   string  $typeKey    The model type.
      * @param   string  $identifier The model identifier.
@@ -279,6 +286,7 @@ class Store
      */
     public function retrieveInverseRecords($ownerTypeKey, $relTypeKey, array $identifiers, $inverseField)
     {
+        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         $persister = $this->getPersisterFor($relTypeKey);
         return $persister->inverse(
             $this->getMetadataForType($ownerTypeKey),
@@ -298,7 +306,7 @@ class Store
      */
     protected function loadModel($typeKey, array $record)
     {
-
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $this->mf->validateResourceTypes($typeKey, $record['type']);
         // Must use the type from the record to cover polymorphic models.
         $metadata = $this->getMetadataForType($record['type']);
@@ -323,6 +331,7 @@ class Store
      */
     protected function loadModels($typeKey, RecordSetInterface $records)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $models = [];
         foreach ($records as $record) {
             $models[] = $this->loadModel($typeKey, $record);
@@ -354,6 +363,7 @@ class Store
      */
     protected function createModel($typeKey, $identifier)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         if (true === $this->cache->has($typeKey, $identifier)) {
             throw new \RuntimeException(sprintf('A model is already loaded for type "%s" using identifier "%s"', $typeKey, $identifier));
         }
@@ -376,6 +386,7 @@ class Store
      */
     public function createInverseCollection(RelationshipMetadata $relMeta, Model $owner)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $metadata = $this->getMetadataForType($relMeta->getEntityType());
         return new Collections\InverseCollection($metadata, $this, $owner, $relMeta->inverseField);
     }
@@ -389,6 +400,7 @@ class Store
      */
     public function createEmbedCollection(EmbeddedMetadata $embededPropMeta, array $embedDocs = null)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         if (empty($embedDocs)) {
             $embedDocs = [];
         }
@@ -413,6 +425,7 @@ class Store
      */
     public function createCollection(RelationshipMetadata $relMeta, array $references = null)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $metadata = $this->getMetadataForType($relMeta->getEntityType());
         if (empty($references)) {
             $references = [];
@@ -447,6 +460,7 @@ class Store
      */
     public function loadCollection(Collections\AbstractCollection $collection)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $identifiers = $collection->getIdentifiers();
         if (empty($identifiers)) {
             // Nothing to query.
@@ -616,6 +630,7 @@ class Store
      */
     protected function shouldCommit(Model $model)
     {
+        throw new \BadMethodCallException(sprintf('%s is deprecated.', __METHOD__));
         $state = $model->getState();
         return true === $state->is('dirty') || $state->is('new') || $state->is('deleting');
     }

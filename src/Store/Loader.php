@@ -166,8 +166,26 @@ class Loader
         }
         $metadata = $this->mf->getMetadataForType($modelType);
         $model = new Model($metadata, $identifier, $store);
+
         $this->cache->push($model);
         return $model;
+    }
+
+    /**
+     * Creates multiple proxy models from a set of identifiers
+     *
+     * @param   string  $modelType      The model type.
+     * @param   array   $identifiers    The persistence layer records.
+     * @param   Store   $store          The model store.
+     * @return  Model[]
+     */
+    public function createProxyModels($modelType, array $identifiers, Store $store)
+    {
+        $models = [];
+        foreach ($identifiers as $identifier) {
+            $models[] = $this->createProxyModel($modelType, $identifier, $store);
+        }
+        return $models;
     }
 
     /**
