@@ -376,11 +376,8 @@ abstract class AbstractModel
      */
     private function retrieveFromStore()
     {
-        $store = $this->getStore();
-        $metadata = $this->getMetadata();
-
         $record = $store->retrieveRecord($this->getType(), $this->getId());
-        $this->properties = new Properties($metadata, $store, $record['properties']);
+        $this->properties->reinitialize($record['properties']);
         return $this;
     }
 }
