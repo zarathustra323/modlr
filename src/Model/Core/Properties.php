@@ -218,8 +218,11 @@ class Properties
             // @todo Need to determine how to show the actual changes for embeds.
             // @todo Need to confirm how the changeset should be formatted.
             if ($propMeta->isEmbedOne() && true === $this->get($key)->isDirty()) {
-                $set[$key]['old'] = $original;
-                $set[$key]['new'] = $this->get($key);
+                $embedSet = $this->get($key)->getChangeSet();
+                foreach ($embedSet as $embedKey => $values) {
+                    $set[$key]['old'][$embedKey] = $values['old'];
+                    $set[$key]['new'][$embedKey] = $values['new'];
+                }
             } elseif (isset($this->remove[$key])) {
                 $set[$key]['old'] = $original;
                 $set[$key]['new'] = null;
