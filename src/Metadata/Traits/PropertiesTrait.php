@@ -71,7 +71,6 @@ trait PropertiesTrait
     /**
      * Gets all attribute properties.
      *
-     * @deprecated
      * @return  PropertyMetadata[]
      */
     public function getAttributes()
@@ -86,6 +85,23 @@ trait PropertiesTrait
             }
         }
         return $this->attributes;
+    }
+
+    /**
+     * Gets all attribute properties that contain a non-null default value.
+     *
+     * @return  PropertyMetadata[]
+     */
+    public function getAttributesWithDefaults()
+    {
+        $defaults = [];
+        foreach ($this->getAttributes() as $key => $property) {
+            if (null === $property->defaultValue) {
+                continue;
+            }
+            $defaults[$key] = $property;
+        }
+        return $defaults;
     }
 
     /**
@@ -108,7 +124,6 @@ trait PropertiesTrait
     /**
      * Gets all embed properties.
      *
-     * @deprecated
      * @return  PropertyMetadata[]
      */
     public function getEmbeds()
@@ -169,7 +184,6 @@ trait PropertiesTrait
     /**
      * Gets all relationship properties.
      *
-     * @deprecated
      * @return  PropertyMetadata[]
      */
     public function getRelationships()

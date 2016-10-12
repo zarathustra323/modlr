@@ -118,8 +118,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function calculateChangeSet()
     {
-        // @todo Vet touch.
-        $this->touch();
+        $this->proxy();
         if (false === $this->isDirty()) {
             return [];
         }
@@ -226,8 +225,7 @@ abstract class AbstractCollection implements IteratorAggregate, Countable
      */
     public function hasDirtyModels()
     {
-        // @todo Vet touch.
-        $this->touch();
+        $this->proxy();
         foreach ($this->current as $model) {
             if (true === $model->isDirty()) {
                 return true;

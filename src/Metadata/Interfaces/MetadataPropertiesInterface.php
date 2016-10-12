@@ -28,6 +28,13 @@ interface MetadataPropertiesInterface
     public function attrSupportsAutocomplete($key);
 
     /**
+     * Gets the non-null default attribute values.
+     *
+     * @return  PropertyMetadata[]
+     */
+    public function getAttributesWithDefaults();
+
+    /**
      * Gets all properties that are flagged for autocomplete in search.
      *
      * @return  PropertyMetadata[]

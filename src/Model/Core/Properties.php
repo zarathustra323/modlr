@@ -29,6 +29,7 @@ class Properties
     /**
      * Modified property values.
      * Will only contain internally touched/converted values.
+     * Will only contain `settable` properties: such as attributes, has-ones, and embed-ones.
      * Stored as $propKey => $propValue.
      *
      * @var array
@@ -193,16 +194,39 @@ class Properties
      */
     public function calculateChangeSet()
     {
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        $set = [];
-        foreach ($this->current as $key => $current) {
-            $original = isset($this->original[$key]) ? $this->original[$key] : null;
-            $set[$key]['old'] = $original;
-            $set[$key]['new'] = $current;
+        throw new \BadMethodCallException(sprintf('%s is only partially implemented.', __METHOD__));
+        foreach ($this->metadata->getAttributesWithDefaults() as $key => $attrMeta) {
+            // Touch all attributes with default values.
+            // Ensures that defaults are properly applied if this model was rolled back or not accessed.
+            $this->get($key);
         }
-        foreach ($this->remove as $key) {
-            $set[$key]['old'] = $this->original[$key];
-            $set[$key]['new'] = null;
+
+        $set = [];
+        foreach ($this->touched as $key => $touched) {
+            $propMeta = $this->metadata->getProperty($key);
+            // Collections.
+            if ($propMeta->isRelationshipMany() || $propMeta->isEmbedMany()) {
+                $collectionSet = $this->get($key)->calculateChangeSet();
+                if (!empty($collectionSet)) {
+                    $set[$key] = $collectionSet;
+                }
+                continue;
+            }
+
+            $original = isset($this->original[$key]) ? $this->original[$key] : null;
+
+            // @todo Need to determine how to show the actual changes for embeds.
+            // @todo Need to confirm how the changeset should be formatted.
+            if ($propMeta->isEmbedOne() && true === $this->get($key)->isDirty()) {
+                $set[$key]['old'] = $original;
+                $set[$key]['new'] = $this->get($key);
+            } elseif (isset($this->remove[$key])) {
+                $set[$key]['old'] = $original;
+                $set[$key]['new'] = null;
+            } elseif (isset($this->modified[$key])) {
+                $set[$key]['old'] = $original;
+                $set[$key]['new'] = $this->modified[$key];
+            }
         }
         ksort($set);
         return $set;
@@ -557,10 +581,6 @@ class Properties
      */
     private function getDefaultValue(PropertyMetadata $propMeta)
     {
-        if (true === $propMeta->isAttribute()) {
-            // Load the default attribute value.
-            return $propMeta->defaultValue;
-        }
         if (true === $propMeta->isRelationshipMany()) {
             // Create empty relationship-many collection.
             return $this->getLoader()->createModelCollection($propMeta, [], $this->store);
@@ -585,9 +605,18 @@ class Properties
     private function getOriginalValue(PropertyMetadata $propMeta)
     {
         $key = $propMeta->getKey();
+
+        if ($propMeta->isAttribute() && null !== $propMeta->defaultValue && !isset($this->original[$key])) {
+            // Apply default value.
+            $this->original[$key] = null;
+            $this->touched[$key]  = true;
+            $this->modified[$key] = $this->store->convertAttributeValue($propMeta->dataType, $propMeta->defaultValue);
+            return $this->modified[$key];
+        }
+
         if (!isset($this->touched[$key])) {
             $this->original[$key] = $this->convertValue($propMeta);
-            $this->touched[$key] = true;
+            $this->touched[$key]  = true;
         }
         return $this->original[$key];
     }
@@ -600,7 +629,6 @@ class Properties
      */
     private function initialize(array $properties = null)
     {
-        // @todo This will likely need to, at least, set any default values! Or the changeset will have to account for it.
         if (true === $this->areNew() || null === $properties) {
             return $this;
         }

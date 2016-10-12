@@ -134,9 +134,7 @@ abstract class AbstractModel
      */
     public function getChangeSet()
     {
-        // @todo Make sure default values (default attr, empty has-one, has-many) are not included in the changeset.
-        throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
-        return $this;
+        return $this->properties->calculateChangeSet();
     }
 
     /**
@@ -281,6 +279,7 @@ abstract class AbstractModel
      */
     public function save()
     {
+        // @todo This SHOULD cascade save references if they are new... perhaps not if they are existing...
         throw new \BadMethodCallException(sprintf('%s not yet implemented.', __METHOD__));
         return $this;
     }
